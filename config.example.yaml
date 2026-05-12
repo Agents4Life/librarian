@@ -1,0 +1,34 @@
+# Librarian example configuration
+#
+# Copy this file to config.yaml for local notes. The current implementation is
+# primarily configured through environment variables, but this file documents the
+# intended shape of local configuration.
+
+vault:
+  path: /path/to/your/obsidian/vault
+  inbox_dir: inbox
+  raw_dir: raw
+  wiki_dir: wiki
+  reportes_dir: reportes
+
+llm:
+  primary:
+    provider: ollama
+    base_url: ${OLLAMA_BASE_URL}
+    model: qwen3.5:4b
+  fallback:
+    provider: openai-compatible
+    base_url: https://example.com/v1
+    model: model-name
+    # API key via environment variable, for example ZAI_API_KEY.
+  timeout_ms: 600000
+
+processing:
+  dry_run_default: true
+  batch_size: 10
+
+tracking:
+  stale_threshold_days: 90
+
+reports:
+  dir: reportes

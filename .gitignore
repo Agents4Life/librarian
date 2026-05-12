@@ -1,0 +1,11 @@
+node_modules/
+dist/
+state/processed.json
+.env
+.aiver/
+config.yaml
+logs/
+.scratch/
+ROADMAP.md
+PRD.md
+docs/
