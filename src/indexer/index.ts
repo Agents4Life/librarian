@@ -4,3 +4,13 @@ export { parseFrontmatter, parseNote, computeContentHash, extractHeadings, extra
 export { buildIndex } from "./builder.js";
 export { loadIndex, saveIndex } from "./store.js";
 export { createQueryApi } from "./query.js";
+export {
+  emptyMetadata,
+  loadIndexMetadata,
+  saveIndexMetadata,
+  detectStaleness,
+  type IndexMetadata,
+  type IndexCacheStatus,
+  type CacheEntry,
+  type FileEntry,
+} from "./index-metadata.js";

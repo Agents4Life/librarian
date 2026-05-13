@@ -39,6 +39,30 @@ const operationalCommands: Record<string, (args: string[]) => Promise<void>> = {
     if (!id) { console.error("Usage: librarian apply <id>"); process.exit(1); }
     await applyProposal(id);
   },
+  retry: async (args) => {
+    const id = args[0];
+    if (!id) { console.error("Usage: librarian retry <id>"); process.exit(1); }
+    const { retryProposal } = await import('./commands/proposals.js');
+    await retryProposal(id);
+  },
+  reset: async (args) => {
+    const id = args[0];
+    if (!id) { console.error("Usage: librarian reset <id>"); process.exit(1); }
+    const { resetProposal } = await import('./commands/proposals.js');
+    await resetProposal(id);
+  },
+  index: async (args) => {
+    const subcommand = args[0];
+    const { indexRebuild, indexStatus } = await import('./commands/index.js');
+    if (subcommand === "rebuild") {
+      await indexRebuild();
+    } else if (subcommand === "status") {
+      await indexStatus();
+    } else {
+      console.error("Usage: librarian index <rebuild|status>");
+      process.exit(1);
+    }
+  },
 };
 
 const command = argv[0];

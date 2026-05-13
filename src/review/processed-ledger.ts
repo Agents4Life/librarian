@@ -6,6 +6,7 @@ type LedgerEntry = {
   at: string;
   proposalId?: string;
   targetPath?: string;
+  operationId?: string;
 };
 
 type ProcessedLedger = {
@@ -46,7 +47,7 @@ export const isProcessed = async (vaultPath: string, sourcePath: string): Promis
 export const markProcessed = async (
   vaultPath: string,
   sourcePath: string,
-  metadata: { proposalId: string; targetPath: string },
+  metadata: { proposalId: string; targetPath: string; operationId: string },
 ): Promise<void> => {
   const filePath = ledgerFilePath(vaultPath);
   const dir = path.dirname(filePath);
@@ -67,6 +68,7 @@ export const markProcessed = async (
       at: new Date().toISOString(),
       proposalId: metadata.proposalId,
       targetPath: metadata.targetPath,
+      operationId: metadata.operationId,
     };
     await saveLedger(vaultPath, ledger);
   } finally {

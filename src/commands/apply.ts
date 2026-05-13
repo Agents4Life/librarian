@@ -9,12 +9,15 @@ export const applyProposal = async (id: string, vaultPath?: string) => {
 
   try {
     const updated = await service.apply(id);
+    const lastTransition = updated.transitions[updated.transitions.length - 1];
     console.log(JSON.stringify({
       ok: true,
       id: updated.id,
       status: updated.status,
       appliedAt: updated.appliedAt,
       targetPath: updated.proposal.target,
+      operationId: lastTransition?.operationId,
+      attempts: updated.attempts,
     }, null, 2));
   } catch (error) {
     if (error instanceof Error) {

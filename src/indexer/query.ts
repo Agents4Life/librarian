@@ -49,10 +49,15 @@ export const createQueryApi = (index: NoteIndex) => {
       .filter((n): n is Note => n !== undefined);
   };
 
-  const getOrphans = (): Note[] =>
-    allNotes().filter(
-      (note) => note.links.length === 0 && note.backlinks.length === 0,
-    );
+  const getOrphans = (): Note[] => {
+    const excludedSections: VaultSection[] = ["unknown", "reviews", "memory"];
+    return allNotes().filter((note) => {
+      if (note.path.includes(".tmp_")) return false;
+      if (note.path.includes(".librarian")) return false;
+      if (excludedSections.includes(note.section)) return false;
+      return note.links.length === 0 && note.backlinks.length === 0;
+    });
+  };
 
   const getGraphStats = () => {
     const notes = allNotes();
