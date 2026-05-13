@@ -6,17 +6,34 @@ import { useAppState } from "../state.js";
 import type { RendererProps } from "./registry.js";
 import { ProposalPreview } from "../components/proposal-preview.js";
 
+const STATUS_COLORS: Record<string, string> = {
+  pending: theme.warning,
+  approved: theme.success,
+  rejected: theme.error,
+  applying: theme.primary,
+  applied: theme.success,
+  failed: theme.error,
+  rolled_back: theme.warning,
+};
+
+const statusColor = (status: string) => STATUS_COLORS[status] ?? theme.primary;
+
 export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction }) => {
   const { state, dispatch } = useAppState();
 
   useInput(useCallback((input, key) => {
     if (node.type !== "proposal-detail") return;
     if (state.composerValue !== "") return;
+    const p = node.proposal;
 
     if (input === "a") {
-      onAction(`approve:${node.proposal.id}`);
+      onAction(`approve:${p.id}`);
     } else if (input === "r") {
-      onAction(`reject:${node.proposal.id}`);
+      onAction(`reject:${p.id}`);
+    } else if (input === "t" && (p.status === "failed" || p.status === "rolled_back")) {
+      onAction(`retry:${p.id}`);
+    } else if (input === "x" && (p.status === "failed" || p.status === "rolled_back")) {
+      onAction(`reset:${p.id}`);
     } else if (input === "p") {
       dispatch({ type: "TOGGLE_PREVIEW", nodeId: node.id });
     } else if (input === "q" || key.escape) {
@@ -27,10 +44,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
   if (node.type !== "proposal-detail") return null;
 
   const p = node.proposal;
-  const statusColor = p.status === "pending" ? theme.warning
-    : p.status === "approved" ? theme.success
-    : p.status === "rejected" ? theme.error
-    : theme.primary;
+  const canRetry = p.status === "failed" || p.status === "rolled_back";
 
   return (
     <Box flexDirection="column" paddingX={1}>
@@ -39,7 +53,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
 
       <Box flexDirection="row" gap={2}>
         <Text bold>Status:</Text>
-        <Text color={statusColor}>{p.status}</Text>
+        <Text color={statusColor(p.status)}>{p.status}</Text>
       </Box>
 
       <Box flexDirection="row" gap={2}>
@@ -61,6 +75,20 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
         <Text bold>Category:</Text>
         <Text>{p.proposal.category}</Text>
       </Box>
+
+      {p.attempts > 0 && (
+        <Box flexDirection="row" gap={2}>
+          <Text bold>Attempts:</Text>
+          <Text color={p.attempts > 1 ? theme.warning : undefined}>{p.attempts}</Text>
+        </Box>
+      )}
+
+      {p.lastError && (
+        <Box flexDirection="column" marginTop={1}>
+          <Text bold color={theme.error}>Last Error</Text>
+          <Text dimColor>{p.lastError}</Text>
+        </Box>
+      )}
 
       {p.proposal.tags.length > 0 && (
         <Box flexDirection="row" gap={2}>
@@ -94,6 +122,21 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
         </Box>
       )}
 
+      {p.transitions.length > 0 && (
+        <Box flexDirection="column" marginTop={1}>
+          <Text bold>Transition History</Text>
+          {p.transitions.map((t, i) => (
+            <Box key={i} flexDirection="row" gap={1}>
+              <Text dimColor>{new Date(t.at).toLocaleString()}</Text>
+              <Text color={statusColor(t.from)}>{t.from}</Text>
+              <Text dimColor>{"→"}</Text>
+              <Text color={statusColor(t.to)}>{t.to}</Text>
+              {t.error && <Text color={theme.error}>err</Text>}
+            </Box>
+          ))}
+        </Box>
+      )}
+
       {node.showPreview && (
         <ProposalPreview
           targetPath={p.proposal.target}
@@ -104,7 +147,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
 
       <Box marginTop={1}>
         <Text dimColor>
-          a approve · r reject · p {node.showPreview ? "hide" : "show"} preview · q back
+          a approve{" · "}r reject{canRetry ? " · t retry · x reset" : ""}{" · "}p {node.showPreview ? "hide" : "show"} preview{" · "}q back
         </Text>
       </Box>
     </Box>

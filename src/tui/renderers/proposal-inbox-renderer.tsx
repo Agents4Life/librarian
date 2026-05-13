@@ -30,7 +30,7 @@ export const ProposalInboxRenderer: React.FC<RendererProps> = ({ node, onAction 
   return (
     <Box flexDirection="column" paddingX={1}>
       <Text bold color={theme.primary}>
-        Proposal Inbox ({node.proposals.length} pending)
+        Proposal Inbox ({node.proposals.length} proposal{node.proposals.length !== 1 ? "s" : ""})
       </Text>
       <Text> </Text>
 

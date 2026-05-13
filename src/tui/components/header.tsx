@@ -49,6 +49,14 @@ export const Header: React.FC = () => {
     ? healthNode.summary.status
     : undefined;
 
+  const indexStatusCfg: Record<string, { icon: string; color: string; label: string }> = {
+    fresh: { icon: '●', color: theme.success, label: 'index:fresh' },
+    stale: { icon: '◐', color: theme.warning, label: 'index:stale' },
+    missing: { icon: '○', color: theme.muted, label: 'index:missing' },
+    rebuilding: { icon: '◌', color: theme.primary, label: 'index:rebuilding' },
+  };
+  const idxCfg = indexStatusCfg[state.indexStatus] ?? indexStatusCfg.missing;
+
   const rawBacklog = healthNode && healthNode.type === 'graph-health'
     ? healthNode.summary.rawBacklog
     : 0;
@@ -60,6 +68,8 @@ export const Header: React.FC = () => {
       </Box>
       <Box gap={1}>
         <Text dimColor>{vaultName}</Text>
+        <Text dimColor>·</Text>
+        <Text color={idxCfg.color}>{idxCfg.icon} {idxCfg.label}</Text>
         <Text dimColor>·</Text>
         <Text dimColor>Raw: {rawBacklog}</Text>
         <Text dimColor>·</Text>

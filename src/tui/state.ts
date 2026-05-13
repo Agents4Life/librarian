@@ -75,9 +75,12 @@ export interface ActivityEntry {
   message: string;
 }
 
+export type IndexCacheStatus = 'fresh' | 'stale' | 'missing' | 'rebuilding';
+
 export interface AppState {
   vaultPath: string;
   ollamaStatus: 'ok' | 'down' | 'checking';
+  indexStatus: IndexCacheStatus;
 
   workspace: WorkspaceNode[];
   activeNodeId: string;
@@ -96,6 +99,7 @@ export interface AppState {
 export type AppAction =
   | { type: 'SET_VAULT_PATH'; vaultPath: string }
   | { type: 'SET_OLLAMA_STATUS'; status: 'ok' | 'down' | 'checking' }
+  | { type: 'SET_INDEX_STATUS'; status: IndexCacheStatus }
   | { type: 'ADD_NODE'; node: WorkspaceNode }
   | { type: 'UPDATE_NODE'; id: string; patch: Partial<WorkspaceNode> }
   | { type: 'SET_ACTIVE_NODE'; id: string }
@@ -136,6 +140,9 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
 
     case 'SET_OLLAMA_STATUS':
       return { ...state, ollamaStatus: action.status };
+
+    case 'SET_INDEX_STATUS':
+      return { ...state, indexStatus: action.status };
 
     case 'ADD_NODE':
       return { ...state, ...navigateTo(action.node, state) };
@@ -269,6 +276,7 @@ export const createInitialState = (vaultPath: string): AppState => {
   return {
     vaultPath,
     ollamaStatus: 'checking',
+    indexStatus: 'missing',
     workspace: [chatNode],
     activeNodeId: chatNodeId,
     navigationHistory: [chatNodeId],
