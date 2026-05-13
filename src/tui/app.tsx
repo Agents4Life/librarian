@@ -283,9 +283,14 @@ export const App: React.FC = () => {
       uiEventBus.emit({ type: 'agent:thinking', message: 'Thinking...' });
 
       try {
-        const llm = createLlmClient();
-        const response = await llm.chat(updatedMessages);
-        const assistantMsg: ChatMessage = { role: 'assistant', content: response.content };
+        const run = await runLibrarian(parsed.args, state.vaultPath);
+        const runResult = run.result as Record<string, unknown> | null;
+        const responseText = typeof runResult?.content === 'string'
+          ? runResult.content
+          : runResult?.message
+            ? String(runResult.message)
+            : JSON.stringify(runResult ?? {});
+        const assistantMsg: ChatMessage = { role: 'assistant', content: responseText };
 
         dispatch({
           type: 'UPDATE_NODE',
