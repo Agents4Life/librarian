@@ -21,8 +21,12 @@ const loadLedger = async (vaultPath: string): Promise<ProcessedLedger> => {
   try {
     const raw = await readFile(ledgerFilePath(vaultPath), "utf8");
     return JSON.parse(raw) as ProcessedLedger;
-  } catch {
-    return { processed: {} };
+  } catch (error) {
+    if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+      return { processed: {} };
+    }
+    console.error(`Failed to load ledger at ${ledgerFilePath(vaultPath)}:`, error);
+    throw error;
   }
 };
 
