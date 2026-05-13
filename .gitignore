@@ -7,4 +7,5 @@ config.yaml
 logs/
 .scratch/
 ROADMAP.md
+.DS_Store
 docs/
