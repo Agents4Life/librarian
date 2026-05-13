@@ -221,8 +221,6 @@ Librarian is the AI layer of the [Second Brain Ecosystem](https://github.com/Van
 
 The conceptual introduction lives in Guide 07: Next Level with AI.
 
-## Development
-
 ```bash
 npm run typecheck
 npm test

@@ -21,14 +21,24 @@ export const saveIndex = async (vaultPath: string, index: NoteIndex): Promise<vo
 export const loadIndex = async (vaultPath: string): Promise<NoteIndex | null> => {
   const filePath = indexPath(vaultPath);
 
+  let raw: string;
   try {
-    const raw = await readFile(filePath, "utf8");
+    raw = await readFile(filePath, "utf8");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+
+  try {
     const parsed = JSON.parse(raw) as NoteIndex;
 
     if (parsed.version !== 1) return null;
 
     return parsed;
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof SyntaxError) return null;
+    throw error;
   }
 };

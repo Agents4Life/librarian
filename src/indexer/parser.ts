@@ -13,8 +13,8 @@ const normalizeWikilinkTarget = (target: string) => {
   const withoutAlias = target.split("|")[0] ?? "";
   const withoutHeading = withoutAlias.split("#")[0] ?? "";
   const withoutExtension = withoutHeading.replace(/\.md$/i, "");
-  const pathSegment = withoutExtension.split("/").at(-1) ?? "";
-  return (pathSegment.split("\\").at(-1) ?? "").trim();
+  const normalized = withoutExtension.replace(/\\/g, "/");
+  return normalized.replace(/^\/+|\/+$/g, "").trim();
 };
 
 export const parseFrontmatter = (content: string) => {

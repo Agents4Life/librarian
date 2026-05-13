@@ -14,6 +14,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import lockfile from 'proper-lockfile';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const projectRoot = resolve(__dirname, '..');
@@ -82,9 +83,16 @@ const saveLedger = async (basePath, ledger) => {
 };
 
 const markProcessed = async (basePath, rawRelativePath) => {
-  const ledger = await loadLedger(basePath);
-  ledger.processed[rawRelativePath] = { at: new Date().toISOString() };
-  await saveLedger(basePath, ledger);
+  const lPath = ledgerPath(basePath);
+  await mkdir(path.dirname(lPath), { recursive: true });
+  const release = await lockfile.lock(lPath, { retries: { retries: 5, minTimeout: 50 } });
+  try {
+    const ledger = await loadLedger(basePath);
+    ledger.processed[rawRelativePath] = { at: new Date().toISOString() };
+    await saveLedger(basePath, ledger);
+  } finally {
+    await release();
+  }
 };
 
 // --- Main ---

@@ -131,12 +131,14 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         workspace: state.workspace.map((n) => n.id === action.id ? { ...n, ...action.patch } as WorkspaceNode : n),
       };
 
-    case 'SET_ACTIVE_NODE':
+    case 'SET_ACTIVE_NODE': {
+      const idx = state.navigationHistory.indexOf(action.id);
       return {
         ...state,
         activeNodeId: action.id,
-        historyIndex: state.navigationHistory.indexOf(action.id),
+        historyIndex: idx >= 0 ? idx : state.historyIndex,
       };
+    }
 
     case 'NAVIGATE_BACK':
       if (state.historyIndex <= 0) return state;

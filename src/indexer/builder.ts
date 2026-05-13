@@ -22,11 +22,35 @@ const walkMarkdownFiles = async (directory: string): Promise<string[]> => {
   return nested.flat();
 };
 
+const resolveAmbiguousTitle = (
+  candidates: string[],
+  link: string,
+  sourcePath: string,
+): string | null => {
+  const exact = candidates.find((c) => {
+    const title = path.basename(c, ".md");
+    return title === link;
+  });
+  if (exact) return exact;
+
+  const sourceDir = path.dirname(sourcePath);
+  const sameDir = candidates.find((c) => path.dirname(c) === sourceDir);
+  if (sameDir) return sameDir;
+
+  return null;
+};
+
 const computeBacklinks = (notes: Record<string, Note>): void => {
-  const titleToPath = new Map<string, string>();
+  const titleToPaths = new Map<string, string[]>();
 
   for (const note of Object.values(notes)) {
-    titleToPath.set(note.title.toLowerCase(), note.path);
+    const key = note.title.toLowerCase();
+    const existing = titleToPaths.get(key);
+    if (existing) {
+      existing.push(note.path);
+    } else {
+      titleToPaths.set(key, [note.path]);
+    }
   }
 
   for (const note of Object.values(notes)) {
@@ -35,10 +59,19 @@ const computeBacklinks = (notes: Record<string, Note>): void => {
 
   for (const note of Object.values(notes)) {
     for (const link of note.links) {
-      const linkedPath = titleToPath.get(link.toLowerCase());
-      if (!linkedPath || linkedPath === note.path) continue;
+      const candidates = titleToPaths.get(link.toLowerCase());
+      if (!candidates || candidates.length === 0) continue;
 
-      const linkedNote = notes[linkedPath];
+      let resolved: string | null;
+      if (candidates.length === 1) {
+        resolved = candidates[0];
+      } else {
+        resolved = resolveAmbiguousTitle(candidates, link, note.path);
+      }
+
+      if (!resolved || resolved === note.path) continue;
+
+      const linkedNote = notes[resolved];
       if (linkedNote && !linkedNote.backlinks.includes(note.path)) {
         linkedNote.backlinks.push(note.path);
       }
