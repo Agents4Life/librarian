@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { ChatMessage } from './types.js';
 import type { StoredProposal } from '../proposals/types.js';
+import type { GraphHealthSummary, ActivityEvent } from './activity/types.js';
 
 export interface SearchResult {
   file: string;
@@ -62,7 +63,9 @@ export type WorkspaceNode =
   | { type: 'orphans'; id: string; notes: OrphanNote[]; createdAt: number }
   | { type: 'stale'; id: string; notes: StaleNote[]; createdAt: number }
   | { type: 'proposal-inbox'; id: string; proposals: StoredProposal[]; cursor: number; createdAt: number }
-  | { type: 'proposal-detail'; id: string; proposal: StoredProposal; showPreview: boolean; createdAt: number };
+  | { type: 'proposal-detail'; id: string; proposal: StoredProposal; showPreview: boolean; createdAt: number }
+  | { type: 'graph-health'; id: string; summary: GraphHealthSummary; createdAt: number }
+  | { type: 'activity'; id: string; events: ActivityEvent[]; cursor: number; createdAt: number };
 
 export interface ActivityEntry {
   id: string;
@@ -86,6 +89,8 @@ export interface AppState {
   recentItems: string[];
   composerValue: string;
   loading: boolean;
+  lastIndexAt: number | null;
+  activityEvents: ActivityEvent[];
 }
 
 export type AppAction =
@@ -105,9 +110,13 @@ export type AppAction =
   | { type: 'SET_LOADING'; loading: boolean }
   | { type: 'UPDATE_INBOX_PROPOSALS'; nodeId: string; proposals: StoredProposal[] }
   | { type: 'MOVE_CURSOR'; nodeId: string; direction: 'up' | 'down' }
-  | { type: 'TOGGLE_PREVIEW'; nodeId: string };
+  | { type: 'TOGGLE_PREVIEW'; nodeId: string }
+  | { type: 'SET_LAST_INDEX_AT'; timestamp: number }
+  | { type: 'PUSH_ACTIVITY_EVENT'; event: ActivityEvent };
 
 const createNodeId = () => randomUUID();
+
+const MAX_ACTIVITY_EVENTS = 200;
 
 export const navigateTo = (node: WorkspaceNode, state: AppState): Partial<AppState> => {
   const newHistory = [...state.navigationHistory.slice(0, state.historyIndex + 1), node.id];
@@ -234,6 +243,15 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ),
       };
 
+    case 'SET_LAST_INDEX_AT':
+      return { ...state, lastIndexAt: action.timestamp };
+
+    case 'PUSH_ACTIVITY_EVENT':
+      return {
+        ...state,
+        activityEvents: [action.event, ...state.activityEvents].slice(0, MAX_ACTIVITY_EVENTS),
+      };
+
     default:
       return state;
   }
@@ -260,6 +278,8 @@ export const createInitialState = (vaultPath: string): AppState => {
     recentItems: [],
     composerValue: '',
     loading: false,
+    lastIndexAt: null,
+    activityEvents: [],
   };
 };
 

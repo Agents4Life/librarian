@@ -9,6 +9,9 @@ export type UiEvent =
   | { type: 'review:created'; source: string; target: string }
   | { type: 'review:approved'; id: string }
   | { type: 'review:rejected'; id: string }
+  | { type: 'proposal:applied'; id: string; target: string }
+  | { type: 'pipeline:processed'; source: string; target: string }
+  | { type: 'index:rebuilt'; noteCount: number }
   | { type: 'notification'; level: 'info' | 'warn' | 'error'; message: string };
 
 export type UiEventHandler = (event: UiEvent) => void;
