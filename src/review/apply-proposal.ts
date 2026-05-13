@@ -24,10 +24,9 @@ export const applyProposalToVault = async (
   const targetDir = path.dirname(targetAbsolutePath);
 
   await mkdir(targetDir, { recursive: true });
-  await writeFile(targetAbsolutePath, proposal.proposal.preview, "utf8");
-
   await markProcessed(vaultPath, proposal.sourcePath, {
     proposalId: proposal.id,
     targetPath: proposal.proposal.target,
   });
+  await writeFile(targetAbsolutePath, proposal.proposal.preview, "utf8");
 };
