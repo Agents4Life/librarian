@@ -1,4 +1,5 @@
 import { defaultConfig } from '../config.js';
+import { createIndexContext } from '../index-context.js';
 import { createSemanticTool } from '../tools/semantic.tool.js';
 import { createWikilinksTool } from '../tools/wikilinks.tool.js';
 import type { ChatMessage } from '../tui/types.js';
@@ -32,10 +33,17 @@ export const gatherVaultContext = async (messages: ChatMessage[]): Promise<Vault
 
   const query = keywords.join(' ');
   const vaultPath = defaultConfig.vaultPath;
+  const indexContext = await createIndexContext(vaultPath).catch(() => null);
+
+  if (!indexContext) {
+    return { semanticResults: '', linksContext: '' };
+  }
+
+  const toolContext = { vaultPath, queryApi: indexContext.query };
 
   const [semanticResults, graphStats] = await Promise.all([
-    createSemanticTool(vaultPath).searchSemantic(query, { topK: 5, minScore: 0.1 }).catch(() => ({ results: [] })),
-    createWikilinksTool(vaultPath).getGraphStats().catch(() => ({
+    createSemanticTool(toolContext).searchSemantic(query, { topK: 5, minScore: 0.1 }).catch(() => ({ results: [] })),
+    createWikilinksTool(toolContext).getGraphStats().catch(() => ({
       total_nodes: 0,
       total_edges: 0,
       most_connected: [],
