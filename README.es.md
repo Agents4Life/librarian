@@ -215,18 +215,6 @@ flowchart TD
     end
 ```
 
-## Documentación
-
-| Archivo | Propósito |
-|---------|-----------|
-| [SAFETY.md](SAFETY.md) | Seguridad, privacidad y comportamiento de escritura |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Cómo contribuir |
-| [SOUL.md](SOUL.md) | Identidad y comportamiento del agente |
-| [docs/product/CONTEXT.md](docs/product/CONTEXT.md) | Lenguaje del dominio e invariantes |
-| [docs/design/IDEA.md](docs/design/IDEA.md) | Notas de diseño y modelo mental |
-| [docs/design/contracts/tools.md](docs/design/contracts/tools.md) | Contratos de tools |
-| [docs/adr/](docs/adr/) | Architectural Decision Records |
-
 ## Relación Con Second Brain Ecosystem
 
 Librarian es la capa de IA del [Second Brain Ecosystem](https://github.com/VanessaPellegrini/second-brain-ecosystem), una guía para construir un sistema de conocimiento personal con Obsidian.

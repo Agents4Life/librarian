@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 test('chat persistence writes chats outside raw', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   process.env.LIBRARIAN_VAULT_PATH = vaultPath;
 
   const { saveChat } = await import(`../src/tui/chat-persistence.js?test=${Date.now()}`);

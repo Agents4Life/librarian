@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { createMarkdownMergeTool } from '../src/tools/markdown-merge.tool.js';
 
 test('markdown merge proposes a combined document', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createMarkdownMergeTool(vaultPath);
 
   await writeFile(path.join(vaultPath, 'source.md'), ['# Source', '', '## Notes', 'Extra line.'].join('\n'));
@@ -22,7 +22,7 @@ test('markdown merge proposes a combined document', async () => {
 });
 
 test('markdown merge rejects unapproved proposals', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createMarkdownMergeTool(vaultPath);
 
   await writeFile(path.join(vaultPath, 'source.md'), ['# Source', '', '## Notes', 'Extra line.'].join('\n'));
@@ -38,7 +38,7 @@ test('markdown merge rejects unapproved proposals', async () => {
 });
 
 test('markdown merge applies approved proposals', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createMarkdownMergeTool(vaultPath);
 
   await writeFile(path.join(vaultPath, 'source.md'), ['# Source', '', '## Notes', 'Extra line.'].join('\n'));
@@ -60,7 +60,7 @@ test('markdown merge applies approved proposals', async () => {
 });
 
 test('markdown merge reports conflicts when target changes', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createMarkdownMergeTool(vaultPath);
 
   await writeFile(path.join(vaultPath, 'source.md'), ['# Source', '', '## Notes', 'Extra line.'].join('\n'));

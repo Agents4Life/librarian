@@ -28,6 +28,8 @@ Write-oriented flows include report generation and live batch processing through
 
 Batch processing supports `--dry-run`; use it before live mode.
 
+Processing state is tracked in `state/processed.json` (not in `raw/`). The batch script does not modify files in `raw/`. Older versions wrote `librarian.processed: true` into raw frontmatter; if you ran those versions, some raw notes may already contain that field. The current version reads that field for backward compatibility but never writes to `raw/`.
+
 ## Privacy
 
 Librarian can use any OpenAI-compatible model endpoint you configure.
@@ -46,6 +48,7 @@ Do not use a cloud model with notes you are not willing to send to that provider
 - Unexpected writes in alpha flows.
 - Misconfigured vault paths.
 - Provider-specific privacy or retention policies.
+- Older versions of `scripts/process-raw.js` modified frontmatter in `raw/`. Current versions use an external ledger. If you previously ran batch processing, review your `raw/` notes for `librarian.processed` fields that were added by the old script.
 
 ## Safer Operating Practices
 

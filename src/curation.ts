@@ -5,6 +5,7 @@ import type { CurationProposal, DuplicateReason, WikiCategory } from './types.js
 import { createLlmClient, type LlmMessage } from './llm.js';
 import { createSemanticTool } from './tools/semantic.tool.js';
 import { inspectRawInbox } from './ingest.js';
+import type { ToolContext } from './index-context.js';
 
 // --- Helpers ---
 
@@ -75,8 +76,9 @@ const checkSemanticDuplicate = async (
   basePath: string,
   noteContent: string,
   fileName: string,
+  queryApi?: ToolContext["queryApi"],
 ): Promise<DuplicateCheck> => {
-  const semantic = createSemanticTool(basePath);
+  const semantic = createSemanticTool({ vaultPath: basePath, queryApi: queryApi! });
 
   try {
     const results = await semantic.searchSemantic(noteContent.slice(0, 500), { minScore: 0.5, topK: 3 });
@@ -219,7 +221,7 @@ export const proposeWikiPage = async (
 
     // 2b. Semantic match (only if no filename match)
     if (duplicate === 'none') {
-      const semanticCheck = await checkSemanticDuplicate(basePath, sourceContent, fileName);
+      const semanticCheck = await checkSemanticDuplicate(basePath, sourceContent, fileName, undefined);
       if (semanticCheck.reason !== 'none') {
         duplicate = semanticCheck.reason;
         duplicateOf = semanticCheck.existingPath;
@@ -233,7 +235,7 @@ export const proposeWikiPage = async (
 
   const preview = [
     '---',
-    `purim:`,
+    `librarian:`,
     `  processed: false`,
     `  status: review`,
     `source: ${rawRelativePath}`,
@@ -261,11 +263,11 @@ export const proposeWikiPage = async (
   };
 };
 
-export const proposeWikiCurations = async (basePath: string, limit = 10) => {
-  const inbox = await inspectRawInbox(basePath);
+export const proposeWikiCurations = async (basePath: string, limit = 10, queryApi?: ToolContext["queryApi"]) => {
+  const inbox = await inspectRawInbox(basePath, queryApi);
   const toProcess = inbox.notes.filter(n => n.recommendation === 'curate').slice(0, limit);
 
-  const semantic = createSemanticTool(basePath);
+  const semantic = createSemanticTool({ vaultPath: basePath, queryApi: queryApi! });
   let existingPages: string[] = [];
 
   try {
