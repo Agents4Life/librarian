@@ -24,6 +24,7 @@ export interface ProposalStore {
   get(id: string): Promise<StoredProposal | null>;
   list(status?: ProposalStatus): Promise<StoredProposal[]>;
   updateStatus(id: string, status: ProposalStatus): Promise<StoredProposal>;
+  save(proposal: StoredProposal): Promise<StoredProposal>;
 }
 
 export class FileProposalStore implements ProposalStore {
@@ -106,6 +107,13 @@ export class FileProposalStore implements ProposalStore {
     const filePath = proposalPath(this.vaultPath, id);
     await writeFile(filePath, JSON.stringify(proposal, null, 2), "utf8");
 
+    return proposal;
+  }
+
+  async save(proposal: StoredProposal): Promise<StoredProposal> {
+    const filePath = proposalPath(this.vaultPath, proposal.id);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, JSON.stringify(proposal, null, 2), "utf8");
     return proposal;
   }
 }
