@@ -55,9 +55,18 @@ export class ReviewService {
     const proposal = await this.store.get(id);
     if (!proposal) throw new Error(`Proposal not found: ${id}`);
 
-    assertTransition(proposal.status, "applied");
+    assertTransition(proposal.status, "applying");
 
-    await applyProposalToVault(this.vaultPath, proposal);
+    proposal.status = "applying";
+    proposal.updatedAt = new Date().toISOString();
+    await this.store.save(proposal);
+
+    try {
+      await applyProposalToVault(this.vaultPath, proposal);
+    } catch (error) {
+      console.error(`applyProposalToVault failed for ${id}:`, error);
+      throw error;
+    }
 
     proposal.status = "applied";
     proposal.updatedAt = new Date().toISOString();

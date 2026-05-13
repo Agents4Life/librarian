@@ -13,12 +13,16 @@ test("canTransition allows pending → rejected", () => {
   assert.equal(canTransition("pending", "rejected"), true);
 });
 
-test("canTransition allows approved → applied", () => {
-  assert.equal(canTransition("approved", "applied"), true);
+test("canTransition allows approved → applying", () => {
+  assert.equal(canTransition("approved", "applying"), true);
 });
 
 test("canTransition allows approved → rejected", () => {
   assert.equal(canTransition("approved", "rejected"), true);
+});
+
+test("canTransition allows applying → applied", () => {
+  assert.equal(canTransition("applying", "applied"), true);
 });
 
 test("canTransition rejects rejected → applied", () => {
@@ -45,12 +49,17 @@ test("canTransition rejects pending → pending", () => {
   assert.equal(canTransition("pending", "pending"), false);
 });
 
+test("canTransition rejects approved → applied (must go through applying)", () => {
+  assert.equal(canTransition("approved", "applied"), false);
+});
+
 test("assertTransition does not throw for valid transitions", () => {
   const valid: [ProposalStatus, ProposalStatus][] = [
     ["pending", "approved"],
     ["pending", "rejected"],
-    ["approved", "applied"],
+    ["approved", "applying"],
     ["approved", "rejected"],
+    ["applying", "applied"],
   ];
 
   for (const [from, to] of valid) {
@@ -66,6 +75,7 @@ test("assertTransition throws TransitionError for invalid transitions", () => {
     ["applied", "rejected"],
     ["applied", "approved"],
     ["applied", "pending"],
+    ["approved", "applied"],
   ];
 
   for (const [from, to] of invalid) {

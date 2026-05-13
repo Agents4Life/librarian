@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import lockfile from "proper-lockfile";
 
 type LedgerEntry = {
   at: string;
@@ -46,11 +47,28 @@ export const markProcessed = async (
   sourcePath: string,
   metadata: { proposalId: string; targetPath: string },
 ): Promise<void> => {
-  const ledger = await loadLedger(vaultPath);
-  ledger.processed[sourcePath] = {
-    at: new Date().toISOString(),
-    proposalId: metadata.proposalId,
-    targetPath: metadata.targetPath,
-  };
-  await saveLedger(vaultPath, ledger);
+  const filePath = ledgerFilePath(vaultPath);
+  const dir = path.dirname(filePath);
+  await mkdir(dir, { recursive: true });
+
+  try {
+    await writeFile(filePath, '{"processed":{}}', { flag: "wx" });
+  } catch (error) {
+    if (!(error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "EEXIST")) {
+      throw error;
+    }
+  }
+
+  const release = await lockfile.lock(filePath, { lockfilePath: filePath + ".lock", retries: { retries: 5, minTimeout: 20, maxTimeout: 200 } });
+  try {
+    const ledger = await loadLedger(vaultPath);
+    ledger.processed[sourcePath] = {
+      at: new Date().toISOString(),
+      proposalId: metadata.proposalId,
+      targetPath: metadata.targetPath,
+    };
+    await saveLedger(vaultPath, ledger);
+  } finally {
+    await release();
+  }
 };

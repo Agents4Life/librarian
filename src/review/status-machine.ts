@@ -3,7 +3,8 @@ import { TransitionError } from "./types.js";
 
 const VALID_TRANSITIONS: Record<ProposalStatus, ProposalStatus[]> = {
   pending: ["approved", "rejected"],
-  approved: ["applied", "rejected"],
+  approved: ["applying", "rejected"],
+  applying: ["applied"],
   rejected: [],
   applied: [],
 };
