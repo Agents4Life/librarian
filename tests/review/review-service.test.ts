@@ -104,7 +104,7 @@ test("ReviewService apply writes target and marks applied", async () => {
   const content = await readFile(targetPath, "utf8");
   assert.ok(content.includes("# Test"));
 
-  const ledgerPath = path.join(vaultPath, "state", "processed.json");
+  const ledgerPath = path.join(vaultPath, ".librarian", "state", "processed.json");
   const ledger = JSON.parse(await readFile(ledgerPath, "utf8"));
   assert.ok("raw/test.md" in ledger.processed);
   assert.equal(ledger.processed["raw/test.md"].proposalId, created.id);

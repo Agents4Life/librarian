@@ -37,7 +37,7 @@ vault/
   templates/
   home.md
 
-  raw/          # Immutable sources. Librarian should read, not rewrite.
+  raw/          # Immutable sources. Librarian reads, never rewrites.
   wiki/         # AI-maintained pages.
     index.md
     log.md
@@ -45,32 +45,47 @@ vault/
     entidades/
     sources/
     synthesis/
-  reportes/     # Reports, diagnostics, proposals, and review artifacts.
+  reports/      # Reports, diagnostics, and review artifacts.
+    chats/      # Persisted chat sessions.
+    conflicts/  # Merge conflict files.
+  reviews/      # Human-readable review/export surface.
+  memory/       # Persistent agent/session memory.
+  configs/      # Visible/editable Librarian configuration.
+  .librarian/   # Internal state, indexes, cache, locks, proposals.
+    state/      # Index and processed ledger.
+    proposals/  # Proposal source of truth.
 ```
 
 The core rule is simple:
 
-- `raw/` is the source of truth.
-- `wiki/` is maintained knowledge.
-- `reportes/` is where diagnostics and proposals live.
+- `raw/` is the source of truth. Librarian never modifies files here.
+- `wiki/` is maintained knowledge. Only modified through approve/apply.
+- `reports/` is where diagnostics and chat logs live.
+- `reviews/` is a human-readable review/export surface. Not the proposal source of truth.
+- `.librarian/proposals/` is the proposal source of truth.
+- `wiki/` is only modified through approve/apply.
 - `inbox/` remains a human capture inbox; move only curated sources into `raw/` when you want Librarian to process them.
 
 ## What Works Today
 
-- Interactive terminal UI with Ink.
-- Intent routing for common actions.
-- Raw inbox inspection.
-- Heuristic semantic search over Markdown wiki pages.
-- Wiki status, incomplete notes, stale notes, orphan notes, and graph reports.
-- Contextual chat using wiki search results.
-- Batch raw-note curation proposals through `scripts/process-raw.js`.
-- Tests for the main tools and harness.
+- **Interactive TUI** built with Ink (React for terminals) with workspace metaphor and 12 renderer views.
+- **Intent routing** for common actions (regex + LLM fallback).
+- **Vault indexer** that walks the vault, parses frontmatter/headings/wikilinks/tags, computes backlinks, and persists a JSON index to `.librarian/state/index.json`.
+- **Query API** with path/title/tag/section lookup, backlinks, forward links, orphans, graph stats, stale/incomplete notes, Jaccard-based semantic search, BFS pathfinding, and similarity ranking.
+- **Heuristic semantic search** over Markdown wiki pages.
+- **Curation engine** that classifies raw notes via LLM into wiki categories (`conceptos`, `entidades`, `sources`, `synthesis`), detects filename and semantic duplicates, and generates proposals.
+- **Proposal and review system** with a state machine (`pending → approved → applying → applied` or `pending → rejected`), file-based persistence, and a processed ledger with file locking.
+- **CLI subcommands** for proposal lifecycle: `proposals`, `preview`, `approve`, `reject`, `apply`.
+- **Wiki reports**: status, incomplete notes, stale notes, orphan notes, and connection graph.
+- **Contextual chat** using wiki search results, with chat persistence as Markdown.
+- **Batch raw-note curation** through `scripts/process-raw.js` — generates proposals, does not write to wiki directly.
+- **TUI slash commands**: `/search`, `/status`, `/process`, `/review`, `/graph`, `/orphans`, `/stale`.
+- **Comprehensive test suite** with 30+ test files.
 
 ## What Is Not Finished
 
 - No polished setup wizard yet.
 - No Obsidian plugin yet.
-- No robust approval database yet.
 - No real vector database in the current implementation.
 - PDF/EPUB ingestion is not implemented.
 - Some write paths are still experimental and should be treated with caution.
@@ -89,7 +104,7 @@ Librarian works with personal knowledge bases. Be conservative.
 
 See [SAFETY.md](SAFETY.md) for the full safety model.
 
-## Installation For Development
+## Installation
 
 ```bash
 git clone git@github.com:Agents4Life/librarian.git
@@ -99,7 +114,9 @@ npm run build
 npm link
 ```
 
-Node.js 22+ is recommended.
+After `npm link`, the `librarian` command is available globally.
+
+Node.js 22+ is required.
 
 ## Configuration
 
@@ -140,6 +157,8 @@ export OLLAMA_MODEL="qwen3.5:4b"
 
 You may configure another OpenAI-compatible endpoint with the same environment variables. If you set `ZAI_API_KEY`, Librarian sends an `Authorization` header for providers that require it.
 
+Librarian uses raw `fetch()` calls — no external LLM SDK. It supports primary and fallback endpoints with configurable timeout.
+
 Privacy depends on the provider you choose:
 
 - Local Ollama: notes stay on your machine or local network.
@@ -153,21 +172,17 @@ Privacy depends on the provider you choose:
 librarian
 ```
 
-Current menu:
+The TUI uses a workspace metaphor with multiple views. Inside the TUI, use slash commands:
 
-```text
-Librarian
-
-1. Procesar notas nuevas
-2. Buscar en la wiki
-3. Preguntar a Ollama
-4. Estado de la wiki
-5. Paginas incompletas
-6. Notas sin tocar 90 dias
-7. Mapa de conexiones
-
-q. Salir
-```
+| Command | Action |
+|---------|--------|
+| `/search <query>` | Search the wiki |
+| `/status` | Wiki status overview |
+| `/process` | Process raw notes |
+| `/review` | Review proposals |
+| `/graph` | Connection graph |
+| `/orphans` | Show orphan notes |
+| `/stale` | Show stale notes (90+ days) |
 
 ### Single Query
 
@@ -179,18 +194,43 @@ librarian "pregunta sobre Clean Architecture"
 
 The CLI returns JSON.
 
+### Proposal Workflow
+
+Librarian uses a proposal-first workflow for all vault writes:
+
+```bash
+librarian proposals                      # List all proposals
+librarian proposals --status=pending     # Filter by status
+librarian proposal <id>                  # View proposal details
+librarian preview <id>                   # Preview proposal content
+librarian approve <id>                   # Approve a proposal
+librarian reject <id> --reason="..."     # Reject with a reason
+librarian apply <id>                     # Execute an approved proposal
+```
+
+Proposal states: `pending → approved → applying → applied` or `pending → rejected`.
+
 ### Batch Raw Processing
 
-Preview proposals without writing:
+Generate proposals for raw notes without touching the wiki:
 
 ```bash
 node scripts/process-raw.js --dry-run --limit 10
 ```
 
-Live mode writes generated wiki pages and may update processing metadata. Use it only after reviewing dry-run output:
+Generate proposals that you can review and apply:
 
 ```bash
 node scripts/process-raw.js --limit 10
+```
+
+This creates proposals in `.librarian/proposals/`. Review and apply them with:
+
+```bash
+librarian proposals
+librarian preview <id>
+librarian approve <id>
+librarian apply <id>
 ```
 
 ## Architecture
@@ -199,9 +239,15 @@ node scripts/process-raw.js --limit 10
 flowchart TD
     U[User] --> TUI[TUI / CLI]
     TUI --> R[Intent router]
-    R --> T[Tools]
+    R --> H[Harness]
+    H --> T[Tools]
+    H --> C[Curation engine]
+    T --> IDX[Vault indexer]
     T --> LLM[OpenAI-compatible LLM]
-    T --> V[Obsidian vault]
+    IDX --> V[Obsidian vault]
+    C --> P[Proposal store]
+    P --> REV[Review service]
+    REV --> V
     LLM --> OUT[Answer or proposal]
     V --> OUT
 
@@ -213,7 +259,28 @@ flowchart TD
         T5[markdown merge]
         T6[wikilinks]
     end
+
+    subgraph Indexer
+        I1[parser]
+        I2[builder]
+        I3[query API]
+        I4[store]
+    end
 ```
+
+### Key Subsystems
+
+| Subsystem | Location | Purpose |
+|-----------|----------|---------|
+| Intent router | `src/router.ts` | Routes input to tools via regex + LLM fallback |
+| Harness | `src/harness.ts` | Orchestrates tools based on routed intent |
+| LLM client | `src/llm.ts` | OpenAI-compatible client with primary/fallback, raw `fetch()` |
+| Vault indexer | `src/indexer/` | Walks vault, parses frontmatter/headings/links/tags, computes backlinks, persists JSON index |
+| Curation engine | `src/curation.ts` | Classifies raw notes, detects duplicates, generates wiki page proposals |
+| Proposal store | `src/proposals/` | File-based JSON persistence in `.librarian/proposals/` |
+| Review service | `src/review/` | State machine for proposal lifecycle, file-locked processed ledger |
+| TUI | `src/tui/` | Ink + React terminal UI with workspace metaphor, 12 renderers |
+| Tools | `src/tools/` | filesystem, search, semantic, frontmatter, wikilinks, markdown-merge |
 
 ## Development
 
@@ -222,9 +289,10 @@ Librarian is the AI layer of the [Second Brain Ecosystem](https://github.com/Van
 The conceptual introduction lives in Guide 07: Next Level with AI.
 
 ```bash
-npm run typecheck
-npm test
-npm run build
+npm run dev         # Run with tsx (dev mode)
+npm run typecheck   # Type-check without emitting
+npm test            # Run tests
+npm run build       # Compile TypeScript to dist/
 ```
 
 ## License

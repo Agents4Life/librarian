@@ -59,7 +59,7 @@ const mergeContent = (targetContent: string, sourceContent: string) => {
     .replace(/\n{3,}/g, '\n\n');
 };
 
-const proposalDir = (basePath: string) => path.resolve(basePath, 'reportes', 'conflicts');
+const proposalDir = (basePath: string) => path.resolve(basePath, 'reports', 'conflicts');
 
 const proposalPath = (basePath: string, diffId: string) => path.join(proposalDir(basePath), `${diffId}.json`);
 

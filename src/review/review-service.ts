@@ -1,8 +1,9 @@
-import type { ProposalStatus, StoredProposal } from "../proposals/types.js";
+import type { ProposalStatus, StoredProposal, TransitionEntry } from "../proposals/types.js";
 import type { ProposalStore } from "../proposals/proposal-store.js";
 import type { ReviewInfo } from "./types.js";
-import { assertTransition } from "./status-machine.js";
-import { applyProposalToVault } from "./apply-proposal.js";
+import { assertTransition, TERMINAL_STATES } from "./status-machine.js";
+import { applyProposalToVault, type ApplyResult } from "./apply-proposal.js";
+import { generateOperationId } from "../proposals/operation-id.js";
 
 export class ReviewService {
   constructor(
@@ -23,6 +24,8 @@ export class ReviewService {
     if (!proposal) throw new Error(`Proposal not found: ${id}`);
 
     assertTransition(proposal.status, "approved");
+
+    const operationId = generateOperationId();
 
     proposal.status = "approved";
     proposal.updatedAt = new Date().toISOString();
@@ -52,26 +55,103 @@ export class ReviewService {
   }
 
   async apply(id: string): Promise<StoredProposal> {
-    const proposal = await this.store.get(id);
+    let proposal = await this.store.get(id);
     if (!proposal) throw new Error(`Proposal not found: ${id}`);
 
     assertTransition(proposal.status, "applying");
 
+    const operationId = generateOperationId();
+    const attempt = proposal.attempts + 1;
+    const fromStatus = proposal.status;
+
     proposal.status = "applying";
     proposal.updatedAt = new Date().toISOString();
+    this.recordTransition(proposal, operationId, fromStatus, "applying", attempt, "apply-start");
     await this.store.save(proposal);
 
-    try {
-      await applyProposalToVault(this.vaultPath, proposal);
-    } catch (error) {
-      console.error(`applyProposalToVault failed for ${id}:`, error);
-      throw error;
+    const result: ApplyResult = await applyProposalToVault(this.vaultPath, proposal);
+
+    if (result.success) {
+      proposal.status = "applied";
+      proposal.updatedAt = new Date().toISOString();
+      proposal.appliedAt = new Date().toISOString();
+      proposal.attempts = attempt;
+      this.recordTransition(proposal, result.operationId, "applying", "applied", attempt, "apply-success");
+    } else {
+      const finalStatus = result.rollbackError ? "failed" : "rolled_back";
+      proposal.status = finalStatus;
+      proposal.updatedAt = new Date().toISOString();
+      proposal.attempts = attempt;
+      proposal.lastError = result.error ?? "Unknown error";
+      this.recordTransition(
+        proposal,
+        result.operationId,
+        "applying",
+        finalStatus,
+        attempt,
+        result.rollbackError ? "apply-failed-no-rollback" : "apply-failed-rolled-back",
+        result.error,
+      );
     }
 
-    proposal.status = "applied";
+    return this.store.save(proposal);
+  }
+
+  async retry(id: string): Promise<StoredProposal> {
+    const proposal = await this.store.get(id);
+    if (!proposal) throw new Error(`Proposal not found: ${id}`);
+
+    if (proposal.status !== "failed" && proposal.status !== "rolled_back") {
+      throw new Error(`Cannot retry proposal in '${proposal.status}' state. Only 'failed' or 'rolled_back' can be retried.`);
+    }
+
+    assertTransition(proposal.status, "applying");
+
+    return this.apply(id);
+  }
+
+  async reset(id: string): Promise<StoredProposal> {
+    const proposal = await this.store.get(id);
+    if (!proposal) throw new Error(`Proposal not found: ${id}`);
+
+    if (TERMINAL_STATES.includes(proposal.status) && proposal.status !== "rejected") {
+      throw new Error(`Cannot reset proposal in '${proposal.status}' state.`);
+    }
+
+    if (proposal.status === "pending") {
+      throw new Error(`Proposal is already in 'pending' state.`);
+    }
+
+    const operationId = generateOperationId();
+    const fromStatus = proposal.status;
+
+    const previousError = proposal.lastError;
+    proposal.status = "pending";
     proposal.updatedAt = new Date().toISOString();
-    proposal.appliedAt = new Date().toISOString();
+    proposal.lastError = null;
+    this.recordTransition(proposal, operationId, fromStatus, "pending", proposal.attempts, "manual-reset", previousError ?? undefined);
 
     return this.store.save(proposal);
+  }
+
+  private recordTransition(
+    proposal: StoredProposal,
+    operationId: string,
+    fromStatus: ProposalStatus,
+    toStatus: ProposalStatus,
+    attempt: number,
+    reason?: string,
+    error?: string,
+  ): void {
+    const entry: TransitionEntry = {
+      operationId,
+      from: fromStatus,
+      to: toStatus,
+      at: new Date().toISOString(),
+      attempt,
+      reason,
+      error,
+    };
+    proposal.transitions.push(entry);
   }
 }

@@ -6,17 +6,19 @@ type LedgerEntry = {
   at: string;
   proposalId?: string;
   targetPath?: string;
+  operationId?: string;
 };
 
 type ProcessedLedger = {
   processed: Record<string, LedgerEntry>;
 };
 
-const LEDGER_PATH = "state";
+const LEDGER_DIR = ".librarian";
+const LEDGER_STATE_DIR = "state";
 const LEDGER_FILE = "processed.json";
 
 const ledgerFilePath = (vaultPath: string) =>
-  path.join(vaultPath, LEDGER_PATH, LEDGER_FILE);
+  path.join(vaultPath, LEDGER_DIR, LEDGER_STATE_DIR, LEDGER_FILE);
 
 const loadLedger = async (vaultPath: string): Promise<ProcessedLedger> => {
   try {
@@ -45,7 +47,7 @@ export const isProcessed = async (vaultPath: string, sourcePath: string): Promis
 export const markProcessed = async (
   vaultPath: string,
   sourcePath: string,
-  metadata: { proposalId: string; targetPath: string },
+  metadata: { proposalId: string; targetPath: string; operationId: string },
 ): Promise<void> => {
   const filePath = ledgerFilePath(vaultPath);
   const dir = path.dirname(filePath);
@@ -66,6 +68,7 @@ export const markProcessed = async (
       at: new Date().toISOString(),
       proposalId: metadata.proposalId,
       targetPath: metadata.targetPath,
+      operationId: metadata.operationId,
     };
     await saveLedger(vaultPath, ledger);
   } finally {

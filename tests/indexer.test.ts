@@ -13,7 +13,7 @@ const createVault = async () => {
   await mkdir(path.join(vaultPath, "raw"), { recursive: true });
   await mkdir(path.join(vaultPath, "wiki", "conceptos"), { recursive: true });
   await mkdir(path.join(vaultPath, "wiki", "entidades"), { recursive: true });
-  await mkdir(path.join(vaultPath, "reportes"), { recursive: true });
+  await mkdir(path.join(vaultPath, "reports"), { recursive: true });
 
   await writeFile(
     path.join(vaultPath, "raw", "idea.md"),
@@ -31,7 +31,7 @@ const createVault = async () => {
   );
 
   await writeFile(
-    path.join(vaultPath, "reportes", "report.md"),
+    path.join(vaultPath, "reports", "report.md"),
     ["---", "---", "", "# Report", "", "Status report."].join("\n"),
   );
 
@@ -41,6 +41,7 @@ const createVault = async () => {
 test("detectSection classifies paths correctly", () => {
   assert.equal(detectSection("raw/idea.md"), "raw");
   assert.equal(detectSection("wiki/conceptos/test.md"), "wiki");
+  assert.equal(detectSection("reports/2024.md"), "reports");
   assert.equal(detectSection("reportes/2024.md"), "reports");
   assert.equal(detectSection("reviews/pr.md"), "reviews");
   assert.equal(detectSection("memory/session.md"), "memory");

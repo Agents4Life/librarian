@@ -42,7 +42,7 @@ export interface LibrarianConfig {
   vaultPath: string;
   rawDir: string;
   wikiDir: string;
-  reportesDir: string;
+  reportsDir: string;
   staleThresholdDays: number;
 }
 

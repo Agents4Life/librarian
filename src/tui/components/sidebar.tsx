@@ -6,6 +6,8 @@ import { useAppState, type WorkspaceNode } from '../state.js';
 const navItems = [
   { label: 'Chat', nodeType: 'chat' },
   { label: 'Inbox', nodeType: 'proposal-inbox' },
+  { label: 'Health', nodeType: 'graph-health' },
+  { label: 'Activity', nodeType: 'activity' },
   { label: 'Search', nodeType: 'search' },
   { label: 'Status', nodeType: 'status' },
   { label: 'Review', nodeType: 'review' },
@@ -27,6 +29,8 @@ const getNodeLabel = (node: WorkspaceNode): string => {
     case 'process': return 'Process';
     case 'orphans': return 'Orphans';
     case 'stale': return 'Stale';
+    case 'graph-health': return 'Health';
+    case 'activity': return 'Activity';
   }
 };
 

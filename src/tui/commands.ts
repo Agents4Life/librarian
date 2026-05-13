@@ -36,6 +36,16 @@ export const createCommands = (dispatch: (action: unknown) => void, runLibrarian
     description: 'Notas sin tocar 90 días',
     handler: () => { runLibrarian('90 dias sin tocar'); },
   },
+  {
+    slash: '/health',
+    description: 'Graph health dashboard',
+    handler: () => { dispatch({ type: 'LOAD_GRAPH_HEALTH' }); },
+  },
+  {
+    slash: '/activity',
+    description: 'Session activity log',
+    handler: () => { dispatch({ type: 'LOAD_ACTIVITY' }); },
+  },
 ];
 
 export const parseComposerInput = (input: string, commands: SlashCommand[]): { isCommand: boolean; command?: SlashCommand; args: string } => {

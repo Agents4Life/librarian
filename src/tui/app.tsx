@@ -15,6 +15,8 @@ import { StaleRenderer } from './renderers/stale-renderer.js';
 import { ReviewRenderer } from './renderers/review-renderer.js';
 import { ProposalInboxRenderer } from './renderers/proposal-inbox-renderer.js';
 import { ProposalDetailRenderer } from './renderers/proposal-detail-renderer.js';
+import { GraphHealthRenderer } from './renderers/graph-health-renderer.js';
+import { ActivityRenderer } from './renderers/activity-renderer.js';
 import { Header } from './components/header.js';
 import { Sidebar } from './components/sidebar.js';
 import { Composer } from './components/composer.js';
@@ -26,8 +28,12 @@ import { createLlmClient } from '../llm.js';
 import { runLibrarian } from '../harness.js';
 import { FileProposalStore } from '../proposals/proposal-store.js';
 import { ReviewService } from '../review/review-service.js';
+import { createIndexContext } from '../index-context.js';
+import { loadIndexMetadata, detectStaleness, type IndexCacheStatus } from '../indexer/index-metadata.js';
+import { computeGraphHealth } from './health/compute-graph-health.js';
 import type { ChatMessage } from './types.js';
 import type { StoredProposal } from '../proposals/types.js';
+import type { ActivityEvent } from './activity/types.js';
 
 registerRenderer('chat', ChatRenderer);
 registerRenderer('search', SearchRenderer);
@@ -39,6 +45,19 @@ registerRenderer('stale', StaleRenderer);
 registerRenderer('review', ReviewRenderer);
 registerRenderer('proposal-inbox', ProposalInboxRenderer);
 registerRenderer('proposal-detail', ProposalDetailRenderer);
+registerRenderer('graph-health', GraphHealthRenderer);
+registerRenderer('activity', ActivityRenderer);
+
+const refreshAllStatusInbox = async (service: ReviewService, inboxNode: WorkspaceNode | undefined, dispatch: React.Dispatch<import('./state.js').AppAction>) => {
+  if (!inboxNode || inboxNode.type !== 'proposal-inbox') return;
+  const [pending, failed, rolledBack, applying] = await Promise.all([
+    service.list('pending'),
+    service.list('failed'),
+    service.list('rolled_back'),
+    service.list('applying'),
+  ]);
+  dispatch({ type: 'UPDATE_INBOX_PROPOSALS', nodeId: inboxNode.id, proposals: [...pending, ...failed, ...rolledBack, ...applying] });
+};
 
 export const App: React.FC = () => {
   const { exit } = useApp();
@@ -56,6 +75,26 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     checkOllama();
+
+    const buildIndexOnMount = async () => {
+      try {
+        const ctx = await createIndexContext(defaultConfig.vaultPath);
+        dispatch({ type: 'SET_LAST_INDEX_AT', timestamp: Date.now() });
+        uiEventBus.emit({ type: 'index:rebuilt', noteCount: Object.keys(ctx.index.notes).length });
+
+        const meta = await loadIndexMetadata(defaultConfig.vaultPath);
+        if (meta) {
+          const isStale = await detectStaleness(defaultConfig.vaultPath, meta);
+          dispatch({ type: 'SET_INDEX_STATUS', status: isStale ? 'stale' : meta.status as IndexCacheStatus });
+        } else {
+          dispatch({ type: 'SET_INDEX_STATUS', status: 'fresh' });
+        }
+      } catch (error) {
+        dispatch({ type: 'SET_INDEX_STATUS', status: 'missing' });
+        uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
+      }
+    };
+    buildIndexOnMount();
 
     const unsub = uiEventBus.subscribe((event) => {
       switch (event.type) {
@@ -75,6 +114,22 @@ export const App: React.FC = () => {
           const colors = { info: theme.primary, warn: theme.warning, error: theme.error };
           dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: event.level === 'error' ? '✗' : '◉', color: colors[event.level], message: event.message } });
           break;
+        case 'review:approved':
+          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'review:approved', message: `Approved: ${event.id.slice(0, 20)}...`, createdAt: Date.now(), meta: { id: event.id } } });
+          break;
+        case 'review:rejected':
+          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'review:rejected', message: `Rejected: ${event.id.slice(0, 20)}...`, createdAt: Date.now(), meta: { id: event.id } } });
+          break;
+        case 'proposal:applied':
+          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'proposal:applied', message: `Applied: ${event.target}`, createdAt: Date.now(), meta: { id: event.id, target: event.target } } });
+          break;
+        case 'pipeline:processed':
+          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'pipeline:processed', message: `Processed: ${event.source} → ${event.target}`, createdAt: Date.now() } });
+          break;
+        case 'index:rebuilt':
+          dispatch({ type: 'SET_LAST_INDEX_AT', timestamp: Date.now() });
+          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'index:rebuilt', message: `Index rebuilt: ${event.noteCount} notes`, createdAt: Date.now() } });
+          break;
       }
     });
 
@@ -86,89 +141,126 @@ export const App: React.FC = () => {
       const vp = state.vaultPath;
       const store = new FileProposalStore(vp);
       const service = new ReviewService(store, vp);
-      const proposals = await service.list("pending");
+      const [pending, failed, rolledBack, applying] = await Promise.all([
+        service.list('pending'),
+        service.list('failed'),
+        service.list('rolled_back'),
+        service.list('applying'),
+      ]);
+      const proposals = [...pending, ...failed, ...rolledBack, ...applying];
       const nodeId = crypto.randomUUID();
       const node: WorkspaceNode = {
-        type: "proposal-inbox",
+        type: 'proposal-inbox',
         id: nodeId,
         proposals,
         cursor: 0,
         createdAt: Date.now(),
       };
-      dispatch({ type: "ADD_NODE", node });
-      uiEventBus.emit({ type: "agent:done", nodeId });
+      dispatch({ type: 'ADD_NODE', node });
+      uiEventBus.emit({ type: 'agent:done', nodeId });
       return nodeId;
     } catch (error) {
-      uiEventBus.emit({ type: "agent:error", error: error instanceof Error ? error.message : String(error) });
+      uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }, [state.vaultPath]);
 
   const handleRendererAction = useCallback(async (action: string) => {
-    if (action.startsWith("open-detail:")) {
-      const proposalId = action.split(":")[1];
-      const inboxNode = state.workspace.find((n) => n.type === "proposal-inbox");
-      if (!inboxNode || inboxNode.type !== "proposal-inbox") return;
+    if (action.startsWith('open-detail:')) {
+      const proposalId = action.split(':')[1];
+      const inboxNode = state.workspace.find((n) => n.type === 'proposal-inbox');
+      if (!inboxNode || inboxNode.type !== 'proposal-inbox') return;
       const proposal = inboxNode.proposals.find((p: StoredProposal) => p.id === proposalId);
       if (!proposal) return;
 
       const detailNode: WorkspaceNode = {
-        type: "proposal-detail",
+        type: 'proposal-detail',
         id: crypto.randomUUID(),
         proposal,
         showPreview: false,
         createdAt: Date.now(),
       };
-      dispatch({ type: "ADD_NODE", node: detailNode });
+      dispatch({ type: 'ADD_NODE', node: detailNode });
       return;
     }
 
-    if (action.startsWith("approve:")) {
-      const proposalId = action.split(":")[1];
+    if (action.startsWith('approve:')) {
+      const proposalId = action.split(':')[1];
       try {
         const vp = state.vaultPath;
         const store = new FileProposalStore(vp);
         const service = new ReviewService(store, vp);
         await service.approve(proposalId);
-        uiEventBus.emit({ type: "review:approved", id: proposalId });
-        dispatch({ type: "PUSH_ACTIVITY", entry: { icon: "✓", color: theme.success, message: `Approved: ${proposalId.slice(0, 20)}...` } });
+        uiEventBus.emit({ type: 'review:approved', id: proposalId });
+        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `Approved: ${proposalId.slice(0, 20)}...` } });
 
-        const inboxNode = state.workspace.find((n) => n.type === "proposal-inbox");
-        if (inboxNode) {
-          const updated = await service.list("pending");
-          dispatch({ type: "UPDATE_INBOX_PROPOSALS", nodeId: inboxNode.id, proposals: updated });
-        }
-        dispatch({ type: "NAVIGATE_BACK" });
+        const inboxNode = state.workspace.find((n) => n.type === 'proposal-inbox');
+        await refreshAllStatusInbox(service, inboxNode, dispatch);
+        dispatch({ type: 'NAVIGATE_BACK' });
       } catch (error) {
-        uiEventBus.emit({ type: "agent:error", error: error instanceof Error ? error.message : String(error) });
+        uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
       }
       return;
     }
 
-    if (action.startsWith("reject:")) {
-      const proposalId = action.split(":")[1];
+    if (action.startsWith('reject:')) {
+      const proposalId = action.split(':')[1];
       try {
         const vp = state.vaultPath;
         const store = new FileProposalStore(vp);
         const service = new ReviewService(store, vp);
         await service.reject(proposalId);
-        uiEventBus.emit({ type: "review:rejected", id: proposalId });
-        dispatch({ type: "PUSH_ACTIVITY", entry: { icon: "✗", color: theme.error, message: `Rejected: ${proposalId.slice(0, 20)}...` } });
+        uiEventBus.emit({ type: 'review:rejected', id: proposalId });
+        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✗', color: theme.error, message: `Rejected: ${proposalId.slice(0, 20)}...` } });
 
-        const inboxNode = state.workspace.find((n) => n.type === "proposal-inbox");
-        if (inboxNode) {
-          const updated = await service.list("pending");
-          dispatch({ type: "UPDATE_INBOX_PROPOSALS", nodeId: inboxNode.id, proposals: updated });
-        }
-        dispatch({ type: "NAVIGATE_BACK" });
+        const inboxNode = state.workspace.find((n) => n.type === 'proposal-inbox');
+        await refreshAllStatusInbox(service, inboxNode, dispatch);
+        dispatch({ type: 'NAVIGATE_BACK' });
       } catch (error) {
-        uiEventBus.emit({ type: "agent:error", error: error instanceof Error ? error.message : String(error) });
+        uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
       }
       return;
     }
 
-    if (action === "back-to-inbox") {
-      dispatch({ type: "NAVIGATE_BACK" });
+    if (action.startsWith('retry:')) {
+      const proposalId = action.split(':')[1];
+      try {
+        const vp = state.vaultPath;
+        const store = new FileProposalStore(vp);
+        const service = new ReviewService(store, vp);
+        const updated = await service.retry(proposalId);
+        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '↻', color: theme.primary, message: `Retried: ${proposalId.slice(0, 20)}... → ${updated.status}` } });
+        dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'proposal:applied' as const, message: `Retry ${updated.status}: ${updated.proposal.target}`, createdAt: Date.now(), meta: { id: updated.id, target: updated.proposal.target } } });
+
+        const inboxNode = state.workspace.find((n) => n.type === 'proposal-inbox');
+        await refreshAllStatusInbox(service, inboxNode, dispatch);
+        dispatch({ type: 'NAVIGATE_BACK' });
+      } catch (error) {
+        uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
+      }
+      return;
+    }
+
+    if (action.startsWith('reset:')) {
+      const proposalId = action.split(':')[1];
+      try {
+        const vp = state.vaultPath;
+        const store = new FileProposalStore(vp);
+        const service = new ReviewService(store, vp);
+        await service.reset(proposalId);
+        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '↺', color: theme.warning, message: `Reset: ${proposalId.slice(0, 20)}... → pending` } });
+
+        const inboxNode = state.workspace.find((n) => n.type === 'proposal-inbox');
+        await refreshAllStatusInbox(service, inboxNode, dispatch);
+        dispatch({ type: 'NAVIGATE_BACK' });
+      } catch (error) {
+        uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
+      }
+      return;
+    }
+
+    if (action === 'back-to-inbox') {
+      dispatch({ type: 'NAVIGATE_BACK' });
     }
   }, [state.vaultPath, state.workspace]);
 
@@ -181,11 +273,64 @@ export const App: React.FC = () => {
     const parsed = parseComposerInput(input, commands);
 
     if (parsed.isCommand && parsed.command) {
-      if (parsed.command.slash === "/review") {
-        dispatch({ type: "SET_LOADING", loading: true });
-        uiEventBus.emit({ type: "agent:thinking", message: "Loading proposals..." });
+      if (parsed.command.slash === '/review') {
+        dispatch({ type: 'SET_LOADING', loading: true });
+        uiEventBus.emit({ type: 'agent:thinking', message: 'Loading proposals...' });
         await loadProposalInbox();
-        dispatch({ type: "SET_LOADING", loading: false });
+        dispatch({ type: 'SET_LOADING', loading: false });
+        return;
+      }
+
+      if (parsed.command.slash === '/health') {
+        dispatch({ type: 'SET_LOADING', loading: true });
+        uiEventBus.emit({ type: 'agent:thinking', message: 'Computing graph health...' });
+        try {
+          const ctx = await createIndexContext(state.vaultPath);
+          const store = new FileProposalStore(state.vaultPath);
+          const summary = await computeGraphHealth(ctx.query, store);
+          const node: WorkspaceNode = { type: 'graph-health', id: crypto.randomUUID(), summary, createdAt: Date.now() };
+          dispatch({ type: 'ADD_NODE', node });
+          dispatch({ type: 'SET_LAST_INDEX_AT', timestamp: Date.now() });
+          uiEventBus.emit({ type: 'agent:done', nodeId: node.id });
+        } catch (error) {
+          uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
+        } finally {
+          dispatch({ type: 'SET_LOADING', loading: false });
+        }
+        return;
+      }
+
+      if (parsed.command.slash === '/activity') {
+        const node: WorkspaceNode = {
+          type: 'activity',
+          id: crypto.randomUUID(),
+          events: state.activityEvents,
+          cursor: 0,
+          createdAt: Date.now(),
+        };
+        dispatch({ type: 'ADD_NODE', node });
+        return;
+      }
+
+      if (parsed.command.slash === '/orphans') {
+        dispatch({ type: 'SET_LOADING', loading: true });
+        uiEventBus.emit({ type: 'agent:thinking', message: 'Finding orphan notes...' });
+        try {
+          const ctx = await createIndexContext(state.vaultPath);
+          const orphans = ctx.query.getOrphans();
+          const node: WorkspaceNode = {
+            type: 'orphans',
+            id: crypto.randomUUID(),
+            notes: orphans.map((n) => ({ file: n.path, has_outgoing: n.links.length > 0, has_incoming: n.backlinks.length > 0 })),
+            createdAt: Date.now(),
+          };
+          dispatch({ type: 'ADD_NODE', node });
+          uiEventBus.emit({ type: 'agent:done', nodeId: node.id });
+        } catch (error) {
+          uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
+        } finally {
+          dispatch({ type: 'SET_LOADING', loading: false });
+        }
         return;
       }
 
@@ -220,9 +365,14 @@ export const App: React.FC = () => {
       uiEventBus.emit({ type: 'agent:thinking', message: 'Thinking...' });
 
       try {
-        const llm = createLlmClient();
-        const response = await llm.chat(updatedMessages);
-        const assistantMsg: ChatMessage = { role: 'assistant', content: response.content };
+        const run = await runLibrarian(parsed.args, state.vaultPath);
+        const runResult = run.result as Record<string, unknown> | null;
+        const responseText = typeof runResult?.content === 'string'
+          ? runResult.content
+          : runResult?.message
+            ? String(runResult.message)
+            : JSON.stringify(runResult ?? {});
+        const assistantMsg: ChatMessage = { role: 'assistant', content: responseText };
 
         dispatch({
           type: 'UPDATE_NODE',
@@ -331,15 +481,6 @@ const mapRunToNode = (run: unknown): WorkspaceNode | null => {
           curatable: (result.total as number) ?? 0,
           preview: (result.preview as string[]) ?? [],
         },
-        createdAt: now,
-      };
-    }
-    case 'incomplete-notes': {
-      const notes = (result.notes as Array<Record<string, unknown>>) ?? [];
-      return {
-        type: 'orphans',
-        id,
-        notes: notes.map((n) => ({ file: String(n.file ?? ''), has_outgoing: false, has_incoming: false })),
         createdAt: now,
       };
     }

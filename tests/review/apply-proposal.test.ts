@@ -59,7 +59,7 @@ test("applyProposalToVault registers source in ledger", async () => {
 
   await applyProposalToVault(vaultPath, created);
 
-  const ledgerPath = path.join(vaultPath, "state", "processed.json");
+  const ledgerPath = path.join(vaultPath, ".librarian", "state", "processed.json");
   const ledger = JSON.parse(await readFile(ledgerPath, "utf8"));
   assert.ok("raw/test.md" in ledger.processed);
   assert.equal(ledger.processed["raw/test.md"].proposalId, created.id);
@@ -149,10 +149,10 @@ test("applyProposalToVault rejects create when target already exists", async () 
     proposal: stubProposal({ target: "wiki/conceptos/test.md", type: "create" }),
   });
 
-  await assert.rejects(
-    () => applyProposalToVault(vaultPath, created),
-    { message: /Cannot create: target already exists/ },
-  );
+  const result = await applyProposalToVault(vaultPath, created);
+
+  assert.equal(result.success, false);
+  assert.match(result.error ?? "", /Cannot create: target already exists/);
 });
 
 test("applyProposalToVault rejects update when target does not exist", async () => {
@@ -164,10 +164,10 @@ test("applyProposalToVault rejects update when target does not exist", async () 
     proposal: stubProposal({ target: "wiki/conceptos/missing.md", type: "update" }),
   });
 
-  await assert.rejects(
-    () => applyProposalToVault(vaultPath, created),
-    { message: /Cannot update: target not found/ },
-  );
+  const result = await applyProposalToVault(vaultPath, created);
+
+  assert.equal(result.success, false);
+  assert.match(result.error ?? "", /Cannot update: target not found/);
 });
 
 test("applyProposalToVault update succeeds when target exists", async () => {

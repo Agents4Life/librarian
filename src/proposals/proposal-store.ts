@@ -41,6 +41,9 @@ export class FileProposalStore implements ProposalStore {
       sourcePath: input.sourcePath,
       proposal: input.proposal,
       diagnostics: emptyDiagnostics(),
+      attempts: 0,
+      lastError: null,
+      transitions: [],
     };
 
     const filePath = proposalPath(this.vaultPath, id);

@@ -9,7 +9,7 @@ vault:
   inbox_dir: inbox
   raw_dir: raw
   wiki_dir: wiki
-  reportes_dir: reportes
+  reports_dir: reports
 
 llm:
   primary:
@@ -31,4 +31,4 @@ tracking:
   stale_threshold_days: 90
 
 reports:
-  dir: reportes
+  dir: reports

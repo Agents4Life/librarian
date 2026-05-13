@@ -6,7 +6,7 @@ import type { ToolContext } from "./index-context.js";
 const renderList = (items: string[]) => items.map((item) => `- ${item}`).join("\n");
 
 export const generateVaultReports = async (vaultPath: string, queryApi?: ToolContext["queryApi"]) => {
-  const reportDir = path.resolve(vaultPath, "reportes");
+  const reportDir = path.resolve(vaultPath, "reports");
   await mkdir(reportDir, { recursive: true });
 
   const stats = queryApi ? queryApi.getStats() : { total_files: 0, by_section: {} as Record<string, number>, by_status: {} as Record<string, number> };
