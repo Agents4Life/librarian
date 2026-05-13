@@ -78,7 +78,7 @@ The core rule is simple:
 - **CLI subcommands** for proposal lifecycle: `proposals`, `preview`, `approve`, `reject`, `apply`.
 - **Wiki reports**: status, incomplete notes, stale notes, orphan notes, and connection graph.
 - **Contextual chat** using wiki search results, with chat persistence as Markdown.
-- **Batch raw-note curation** through `scripts/process-raw.js` with dry-run support.
+- **Batch raw-note curation** through `scripts/process-raw.js` — generates proposals, does not write to wiki directly.
 - **TUI slash commands**: `/search`, `/status`, `/process`, `/review`, `/graph`, `/orphans`, `/stale`.
 - **Comprehensive test suite** with 30+ test files.
 
@@ -212,16 +212,25 @@ Proposal states: `pending → approved → applying → applied` or `pending →
 
 ### Batch Raw Processing
 
-Preview proposals without writing:
+Generate proposals for raw notes without touching the wiki:
 
 ```bash
 node scripts/process-raw.js --dry-run --limit 10
 ```
 
-Live mode writes generated wiki pages. Use it only after reviewing dry-run output:
+Generate proposals that you can review and apply:
 
 ```bash
 node scripts/process-raw.js --limit 10
+```
+
+This creates proposals in `.librarian/proposals/`. Review and apply them with:
+
+```bash
+librarian proposals
+librarian preview <id>
+librarian approve <id>
+librarian apply <id>
 ```
 
 ## Architecture

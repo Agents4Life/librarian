@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 /**
- * process-raw.js — Batch processing of raw notes into wiki with GLM classification.
+ * process-raw.js — Batch processing of raw notes into proposals.
+ *
+ * Generates proposals in .librarian/proposals/ for each raw note.
+ * Use `librarian approve <id>` and `librarian apply <id>` to write to wiki/.
  *
  * Usage:
- *   node scripts/process-raw.js                    # process 10 notes (default)
- *   node scripts/process-raw.js --limit 50         # process 50 notes
- *   node scripts/process-raw.js --all              # process all pending notes
- *   node scripts/process-raw.js --dry-run          # preview without writing
+ *   node scripts/process-raw.js                    # propose 10 notes (default)
+ *   node scripts/process-raw.js --limit 50         # propose 50 notes
+ *   node scripts/process-raw.js --all              # propose all pending notes
+ *   node scripts/process-raw.js --dry-run          # preview without writing proposals
  *   node scripts/process-raw.js --no-dedup         # skip duplicate detection
  *   node scripts/process-raw.js --limit 5 --yes    # skip confirmation
  */
@@ -14,15 +17,16 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import lockfile from 'proper-lockfile';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const projectRoot = resolve(__dirname, '..');
+const projectRoot = path.resolve(__dirname, '..');
 
 const { inspectRawInbox } = await import(`${projectRoot}/dist/ingest.js`);
 const { proposeWikiPage } = await import(`${projectRoot}/dist/curation.js`);
+const { createIndexContext } = await import(`${projectRoot}/dist/index-context.js`);
 const { createSemanticTool } = await import(`${projectRoot}/dist/tools/semantic.tool.js`);
-const { appendWikiLog, ensureWikiStructure, updateWikiIndex } = await import(`${projectRoot}/dist/wiki-maintenance.js`);
+const { appendWikiLog, ensureWikiStructure } = await import(`${projectRoot}/dist/wiki-maintenance.js`);
+const { FileProposalStore } = await import(`${projectRoot}/dist/proposals/proposal-store.js`);
 
 // --- CLI args ---
 const args = process.argv.slice(2);
@@ -36,8 +40,8 @@ const actualLimit = all ? Infinity : limit;
 
 // --- Config ---
 const vaultPath = process.env.LIBRARIAN_VAULT_PATH ?? process.env.VAULT_PATH;
-const logDir = resolve(projectRoot, 'logs');
-const logFile = resolve(logDir, `process-${new Date().toISOString().slice(0, 10)}.log`);
+const logDir = path.resolve(projectRoot, 'logs');
+const logFile = path.resolve(logDir, `process-${new Date().toISOString().slice(0, 10)}.log`);
 
 if (!vaultPath) {
   process.stderr.write('Set LIBRARIAN_VAULT_PATH or VAULT_PATH before running this script.\n');
@@ -65,44 +69,21 @@ const confirm = (message) => {
   });
 };
 
-const ledgerPath = (basePath) => path.join(basePath, 'state', 'processed.json');
-
-const loadLedger = async (basePath) => {
-  try {
-    const raw = await readFile(ledgerPath(basePath), 'utf-8');
-    return JSON.parse(raw);
-  } catch {
-    return { processed: {} };
-  }
-};
-
-const saveLedger = async (basePath, ledger) => {
-  const dir = path.dirname(ledgerPath(basePath));
-  await mkdir(dir, { recursive: true });
-  await writeFile(ledgerPath(basePath), JSON.stringify(ledger, null, 2), 'utf-8');
-};
-
-const markProcessed = async (basePath, rawRelativePath) => {
-  const lPath = ledgerPath(basePath);
-  await mkdir(path.dirname(lPath), { recursive: true });
-  const release = await lockfile.lock(lPath, { retries: { retries: 5, minTimeout: 50 } });
-  try {
-    const ledger = await loadLedger(basePath);
-    ledger.processed[rawRelativePath] = { at: new Date().toISOString() };
-    await saveLedger(basePath, ledger);
-  } finally {
-    await release();
-  }
-};
-
 // --- Main ---
-log('=== Process Raw Notes ===');
+log('=== Process Raw Notes (proposal-first) ===');
 log(`Vault: ${vaultPath}`);
-log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE'} | Limit: ${all ? 'all' : actualLimit} | Dedup: ${!noDedup}`);
+log(`Mode: ${dryRun ? 'DRY RUN' : 'PROPOSE'} | Limit: ${all ? 'all' : actualLimit} | Dedup: ${!noDedup}`);
 
 try {
+  let ctx;
+  try {
+    ctx = await createIndexContext(vaultPath);
+  } catch {
+    ctx = null;
+  }
+
   log('Inspecting raw inbox...');
-  const inbox = await inspectRawInbox(vaultPath);
+  const inbox = await inspectRawInbox(vaultPath, ctx?.query);
   const curatable = inbox.notes.filter(n => n.recommendation === 'curate');
   const toProcess = curatable.slice(0, actualLimit);
 
@@ -116,21 +97,24 @@ try {
   log(`Notes to process:`);
   toProcess.forEach((n, i) => log(`  ${i + 1}. ${n.file.split('/').pop()}`));
 
-  if (!(await confirm(`Process ${toProcess.length} notes?`))) {
+  if (!(await confirm(`Generate proposals for ${toProcess.length} notes?`))) {
     log('Aborted.');
     process.exit(0);
   }
 
-  // Get existing wiki pages for context
   let existingPages = [];
-  try {
-    const semantic = createSemanticTool(vaultPath);
-    const searchResult = await semantic.searchSemantic('', { minScore: 0 });
-    existingPages = searchResult.results.map(r => r.file.split('/').pop().replace('.md', ''));
-  } catch {}
+  if (ctx) {
+    try {
+      const semantic = createSemanticTool(ctx);
+      const searchResult = await semantic.searchSemantic('', { minScore: 0 });
+      existingPages = searchResult.results.map(r => r.file.split('/').pop().replace('.md', ''));
+    } catch {}
+  }
+
+  const store = dryRun ? null : new FileProposalStore(vaultPath);
 
   log('Processing...');
-  const stats = { created: 0, skipped: 0, errors: 0 };
+  const stats = { proposed: 0, skipped: 0, errors: 0 };
 
   for (let i = 0; i < toProcess.length; i++) {
     const note = toProcess[i];
@@ -143,15 +127,6 @@ try {
       if (proposal.type === 'skip') {
         process.stdout.write(` SKIP (${proposal.duplicate})\n`);
         log(`    SKIP: ${proposal.duplicate} of ${proposal.duplicateOf}`);
-        if (!dryRun) {
-          await markProcessed(vaultPath, note.file);
-          await appendWikiLog(vaultPath, {
-            action: 'skipped',
-            reason: proposal.duplicate,
-            source: note.file,
-            target: proposal.duplicateOf || proposal.target,
-          });
-        }
         stats.skipped++;
         continue;
       }
@@ -160,18 +135,11 @@ try {
         process.stdout.write(' PREVIEW\n');
         log(`    -> ${proposal.target} [${proposal.category}] tags:${proposal.tags.join(',')}`);
       } else {
-        await ensureWikiStructure(vaultPath);
-        const targetPath = resolve(vaultPath, proposal.target);
-        const targetDir = targetPath.substring(0, targetPath.lastIndexOf('/'));
-        await mkdir(targetDir, { recursive: true });
-        await writeFile(targetPath, proposal.preview, 'utf-8');
-        await markProcessed(vaultPath, note.file);
-        await appendWikiLog(vaultPath, {
-          action: 'created',
-          source: note.file,
-          target: proposal.target,
+        await store.create({
+          sourcePath: note.file,
+          proposal,
         });
-        process.stdout.write(' DONE\n');
+        process.stdout.write(' PROPOSED\n');
         log(`    -> ${proposal.target} [${proposal.category}]`);
         log(`       tags: ${proposal.tags.join(', ') || 'none'}`);
         log(`       summary: ${proposal.summary || 'none'}`);
@@ -180,7 +148,7 @@ try {
         }
       }
 
-      stats.created++;
+      stats.proposed++;
     } catch (error) {
       process.stdout.write(` ERROR: ${error.message}\n`);
       log(`    ERROR: ${error.message}`);
@@ -188,19 +156,17 @@ try {
     }
   }
 
-  // Update wiki index after batch
-  if (!dryRun && stats.created > 0) {
-    try {
-      await updateWikiIndex(vaultPath);
-      log('Wiki index updated.');
-    } catch (error) {
-      log(`Warning: failed to update wiki index: ${error.message}`);
-    }
+  if (!dryRun && stats.proposed > 0) {
+    log(`\nNext steps:`);
+    log(`  librarian proposals                  # list proposals`);
+    log(`  librarian preview <id>               # preview content`);
+    log(`  librarian approve <id>               # approve`);
+    log(`  librarian apply <id>                 # write to wiki/`);
   }
 
   // Summary
   log('=== Summary ===');
-  log(`Created: ${stats.created} | Skipped (duplicates): ${stats.skipped} | Errors: ${stats.errors}`);
+  log(`Proposed: ${stats.proposed} | Skipped (duplicates): ${stats.skipped} | Errors: ${stats.errors}`);
   log(`Dry run: ${dryRun}`);
   log(`Log: ${logFile}`);
 } catch (error) {

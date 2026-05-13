@@ -78,7 +78,7 @@ Reglas base:
 - **Subcomandos CLI** para el ciclo de vida de propuestas: `proposals`, `preview`, `approve`, `reject`, `apply`.
 - **Reportes wiki**: estado, páginas incompletas, notas stale, notas huérfanas y grafo de conexiones.
 - **Chat contextual** usando resultados de búsqueda en la wiki, con persistencia de chat como Markdown.
-- **Curaduría batch** de notas raw vía `scripts/process-raw.js` con soporte dry-run.
+- **Curaduría batch** de notas raw vía `scripts/process-raw.js` — genera propuestas, no escribe wiki directamente.
 - **Comandos slash de la TUI**: `/search`, `/status`, `/process`, `/review`, `/graph`, `/orphans`, `/stale`.
 - **Suite de tests completa** con más de 30 archivos de test.
 
@@ -218,10 +218,14 @@ Previsualizar propuestas sin escribir:
 node scripts/process-raw.js --dry-run --limit 10
 ```
 
-El modo live escribe páginas generadas en la wiki. Usalo solo después de revisar el dry-run:
+El modo live genera propuestas en `.librarian/proposals/`. Revisalas y aplicalas con:
 
 ```bash
 node scripts/process-raw.js --limit 10
+librarian proposals
+librarian preview <id>
+librarian approve <id>
+librarian apply <id>
 ```
 
 ## Arquitectura
