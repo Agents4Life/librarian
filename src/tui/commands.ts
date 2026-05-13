@@ -29,7 +29,7 @@ export const createCommands = (dispatch: (action: unknown) => void, runLibrarian
   {
     slash: '/orphans',
     description: 'Notas huérfanas',
-    handler: () => { runLibrarian('paginas incompletas'); },
+    handler: () => { runLibrarian('notas huérfanas'); },
   },
   {
     slash: '/stale',

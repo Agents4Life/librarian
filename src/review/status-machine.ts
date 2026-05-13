@@ -4,7 +4,7 @@ import { TransitionError } from "./types.js";
 const VALID_TRANSITIONS: Record<ProposalStatus, ProposalStatus[]> = {
   pending: ["approved", "rejected"],
   approved: ["applying", "rejected"],
-  applying: ["applied", "failed", "rolled_back"],
+  applying: ["applied", "failed", "rolled_back", "approved"],
   rejected: [],
   applied: [],
   failed: ["applying"],

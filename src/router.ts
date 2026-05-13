@@ -7,6 +7,7 @@ const patterns: Array<[RegExp, RoutedIntent]> = [
   [/estado|cómo está|stats|resumen/i, { intent: 'wiki-status', confidence: 0.8, tool: 'frontmatter' }],
   [/incomplet|vac[ií]a/i, { intent: 'incomplete-notes', confidence: 0.85, tool: 'frontmatter' }],
   [/90 d[ií]as|stale|sin tocar/i, { intent: 'stale-notes', confidence: 0.85, tool: 'frontmatter' }],
+  [/hu[eé]rfana|orphan/i, { intent: 'orphan-notes', confidence: 0.85, tool: 'frontmatter' }],
   [/link|conexi|grafo/i, { intent: 'connections', confidence: 0.8, tool: 'wikilinks' }],
   [/ask|pregunta|consulta/i, { intent: 'ask', confidence: 0.95 }],
 ];
@@ -17,6 +18,7 @@ const validIntents: Intent[] = [
   'wiki-status',
   'incomplete-notes',
   'stale-notes',
+  'orphan-notes',
   'connections',
   'ask',
 ];
@@ -28,6 +30,7 @@ const intentClassificationPrompt = `You are an intent classifier for a wiki libr
 - wiki-status: The user wants to know the overall status, stats, or summary of the vault.
 - incomplete-notes: The user wants to list empty or incomplete wiki pages.
 - stale-notes: The user wants to list notes that haven't been touched in a long time.
+- orphan-notes: The user wants to find orphan notes (pages with no incoming or outgoing wikilinks).
 - connections: The user wants to see wikilinks, connections, or the graph structure.
 - ask: The user is asking a question, wants an explanation, or is having a conversation.
 

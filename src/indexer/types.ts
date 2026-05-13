@@ -41,5 +41,6 @@ export interface NoteIndex {
   version: 1;
   builtAt: string;
   vaultPath: string;
+  vaultFingerprint?: string;
   notes: Record<string, Note>;
 }
