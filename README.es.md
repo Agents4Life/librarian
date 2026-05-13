@@ -45,16 +45,25 @@ vault/
     entidades/
     sources/
     synthesis/
-  reportes/     # Reportes, diagnósticos, propuestas y artefactos de revisión.
+  reports/      # Reportes, diagnósticos y artefactos de revisión.
     chats/      # Sesiones de chat persistidas.
     conflicts/  # Archivos de conflictos de merge.
+  reviews/      # Superficie humana de revisión/export.
+  memory/       # Memoria persistente del agente/sesiones.
+  configs/      # Configuración visible/editable de Librarian.
+  .librarian/   # Estado interno, índices, cache, locks, propuestas.
+    state/      # Índice y ledger de procesados.
+    proposals/  # Fuente de verdad de propuestas.
 ```
 
 Reglas base:
 
 - `raw/` es la fuente de verdad. Librarian nunca modifica archivos aquí.
-- `wiki/` es conocimiento mantenido.
-- `reportes/` guarda diagnósticos, propuestas y logs de chat.
+- `wiki/` es conocimiento mantenido. Solo se modifica vía approve/apply.
+- `reports/` guarda diagnósticos y logs de chat.
+- `reviews/` es una superficie humana de revisión/export. No es la fuente de verdad de propuestas.
+- `.librarian/proposals/` es la fuente de verdad de propuestas.
+- `wiki/` solo se modifica vía approve/apply.
 - `inbox/` sigue siendo captura humana; mové a `raw/` solo las fuentes que querés que Librarian procese.
 
 ## Qué Funciona Hoy

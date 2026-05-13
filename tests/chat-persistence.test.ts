@@ -16,7 +16,7 @@ test('chat persistence writes chats outside raw', async () => {
     { role: 'assistant', content: 'respuesta' },
   ]);
 
-  const content = await readFile(path.join(vaultPath, 'reportes', 'chats', `chat-${new Date().toISOString().slice(0, 10)}.md`), 'utf8');
+  const content = await readFile(path.join(vaultPath, 'reports', 'chats', `chat-${new Date().toISOString().slice(0, 10)}.md`), 'utf8');
 
   assert.match(content, /hola/);
 });

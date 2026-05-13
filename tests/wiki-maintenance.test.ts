@@ -12,7 +12,7 @@ test("wiki maintenance creates the expected wiki structure", async () => {
   const result = await ensureWikiStructure(ctx.vaultPath);
 
   assert.deepEqual(result.created.sort(), [
-    path.join("reportes"),
+    path.join("reports"),
     path.join("wiki"),
     path.join("wiki", "conceptos"),
     path.join("wiki", "entidades"),

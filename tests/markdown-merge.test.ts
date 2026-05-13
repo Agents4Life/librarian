@@ -45,7 +45,7 @@ test('markdown merge applies approved proposals', async () => {
   await writeFile(path.join(vaultPath, 'target.md'), ['# Target', '', '## Notes', 'Base line.'].join('\n'));
 
   const proposal = await tool.proposeMerge('source.md', 'target.md');
-  const proposalFile = path.join(vaultPath, 'reportes', 'conflicts', `${proposal.diff_id}.json`);
+  const proposalFile = path.join(vaultPath, 'reports', 'conflicts', `${proposal.diff_id}.json`);
   const proposalData = JSON.parse(await readFile(proposalFile, 'utf8')) as Record<string, unknown>;
 
   proposalData.status = 'approved';
@@ -67,7 +67,7 @@ test('markdown merge reports conflicts when target changes', async () => {
   await writeFile(path.join(vaultPath, 'target.md'), ['# Target', '', '## Notes', 'Base line.'].join('\n'));
 
   const proposal = await tool.proposeMerge('source.md', 'target.md');
-  const proposalFile = path.join(vaultPath, 'reportes', 'conflicts', `${proposal.diff_id}.json`);
+  const proposalFile = path.join(vaultPath, 'reports', 'conflicts', `${proposal.diff_id}.json`);
   const proposalData = JSON.parse(await readFile(proposalFile, 'utf8')) as Record<string, unknown>;
 
   proposalData.status = 'approved';

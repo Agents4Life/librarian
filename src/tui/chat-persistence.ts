@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { defaultConfig } from '../config.js';
 import type { ChatMessage } from './types.js';
 
-const CHATS_DIR = 'reportes/chats';
+const CHATS_DIR = 'reports/chats';
 
 const chatsDir = () => join(defaultConfig.vaultPath, CHATS_DIR);
 

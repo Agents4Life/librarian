@@ -59,7 +59,7 @@ test("applyProposalToVault registers source in ledger", async () => {
 
   await applyProposalToVault(vaultPath, created);
 
-  const ledgerPath = path.join(vaultPath, "state", "processed.json");
+  const ledgerPath = path.join(vaultPath, ".librarian", "state", "processed.json");
   const ledger = JSON.parse(await readFile(ledgerPath, "utf8"));
   assert.ok("raw/test.md" in ledger.processed);
   assert.equal(ledger.processed["raw/test.md"].proposalId, created.id);

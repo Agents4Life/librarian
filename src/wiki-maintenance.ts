@@ -23,7 +23,7 @@ export const ensureWikiStructure = async (basePath: string) => {
   const relativeDirectories = [
     "wiki",
     ...wikiCategories.map((category) => path.join("wiki", category)),
-    "reportes",
+    "reports",
   ];
   const created: string[] = [];
 

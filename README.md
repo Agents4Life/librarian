@@ -45,16 +45,25 @@ vault/
     entidades/
     sources/
     synthesis/
-  reportes/     # Reports, diagnostics, proposals, and review artifacts.
+  reports/      # Reports, diagnostics, and review artifacts.
     chats/      # Persisted chat sessions.
     conflicts/  # Merge conflict files.
+  reviews/      # Human-readable review/export surface.
+  memory/       # Persistent agent/session memory.
+  configs/      # Visible/editable Librarian configuration.
+  .librarian/   # Internal state, indexes, cache, locks, proposals.
+    state/      # Index and processed ledger.
+    proposals/  # Proposal source of truth.
 ```
 
 The core rule is simple:
 
 - `raw/` is the source of truth. Librarian never modifies files here.
-- `wiki/` is maintained knowledge.
-- `reportes/` is where diagnostics, proposals, and chat logs live.
+- `wiki/` is maintained knowledge. Only modified through approve/apply.
+- `reports/` is where diagnostics and chat logs live.
+- `reviews/` is a human-readable review/export surface. Not the proposal source of truth.
+- `.librarian/proposals/` is the proposal source of truth.
+- `wiki/` is only modified through approve/apply.
 - `inbox/` remains a human capture inbox; move only curated sources into `raw/` when you want Librarian to process them.
 
 ## What Works Today

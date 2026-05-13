@@ -12,11 +12,12 @@ type ProcessedLedger = {
   processed: Record<string, LedgerEntry>;
 };
 
-const LEDGER_PATH = "state";
+const LEDGER_DIR = ".librarian";
+const LEDGER_STATE_DIR = "state";
 const LEDGER_FILE = "processed.json";
 
 const ledgerFilePath = (vaultPath: string) =>
-  path.join(vaultPath, LEDGER_PATH, LEDGER_FILE);
+  path.join(vaultPath, LEDGER_DIR, LEDGER_STATE_DIR, LEDGER_FILE);
 
 const loadLedger = async (vaultPath: string): Promise<ProcessedLedger> => {
   try {

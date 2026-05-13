@@ -14,7 +14,7 @@ test("report generator writes actionable markdown files", async () => {
   const result = await generateVaultReports(ctx.vaultPath, ctx.queryApi);
 
   assert.ok(result.reports.some((report) => report.endsWith("vault-status.md")));
-  const statusReport = await readFile(path.join(ctx.vaultPath, "reportes", "vault-status.md"), "utf8");
+  const statusReport = await readFile(path.join(ctx.vaultPath, "reports", "vault-status.md"), "utf8");
   assert.match(statusReport, /Estado de la wiki/);
 });
 
@@ -25,8 +25,8 @@ test("report generator includes incomplete and orphan reports", async () => {
 
   await generateVaultReports(ctx.vaultPath, ctx.queryApi);
 
-  const incomplete = await readFile(path.join(ctx.vaultPath, "reportes", "incomplete-notes.md"), "utf8");
-  const orphan = await readFile(path.join(ctx.vaultPath, "reportes", "orphan-notes.md"), "utf8");
+  const incomplete = await readFile(path.join(ctx.vaultPath, "reports", "incomplete-notes.md"), "utf8");
+  const orphan = await readFile(path.join(ctx.vaultPath, "reports", "orphan-notes.md"), "utf8");
 
   assert.match(incomplete, /Páginas incompletas/);
   assert.match(orphan, /Notas huérfanas/);

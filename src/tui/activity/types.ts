@@ -18,9 +18,12 @@ export type ActivityEvent = {
   type:
     | "review:approved"
     | "review:rejected"
+    | "proposal:created"
     | "proposal:applied"
     | "pipeline:processed"
-    | "index:rebuilt";
+    | "index:rebuilt"
+    | "graph:warning"
+    | "graph:critical";
   message: string;
   createdAt: number;
   meta?: Record<string, unknown>;
