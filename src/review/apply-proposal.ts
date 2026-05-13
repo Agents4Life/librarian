@@ -45,11 +45,6 @@ const writeTempAndRename = async (
   await mkdir(path.dirname(tempPath), { recursive: true });
   await writeFile(tempPath, content, "utf8");
 
-  const written = await readFile(tempPath, "utf8");
-  if (written.length === 0) {
-    throw new Error(`Temp file written with zero length: ${tempPath}`);
-  }
-
   await rename(tempPath, targetAbsolutePath);
   return tempPath;
 };
@@ -60,6 +55,10 @@ const rollbackTarget = async (
   previousContent: string | null,
 ): Promise<boolean> => {
   const targetAbs = assertWithinVault(vaultPath, target.path);
+
+  if (target.tempPath) {
+    await unlink(target.tempPath).catch(() => {});
+  }
 
   try {
     if (target.action === "create") {
@@ -93,11 +92,11 @@ export const applyProposalToVault = async (
   const targetExists = await exists(targetAbs);
 
   if (proposal.proposal.type === "create" && targetExists) {
-    throw new Error(`Cannot create: target already exists: ${targetPath}`);
+    return { operationId, attempt, success: false, error: `Cannot create: target already exists: ${targetPath}` };
   }
 
   if (proposal.proposal.type === "update" && !targetExists) {
-    throw new Error(`Cannot update: target not found: ${targetPath}`);
+    return { operationId, attempt, success: false, error: `Cannot update: target not found: ${targetPath}` };
   }
 
   const transaction = await createTransaction(vaultPath, operationId, proposal.id, attempt, [

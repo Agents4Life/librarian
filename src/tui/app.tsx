@@ -89,7 +89,10 @@ export const App: React.FC = () => {
         } else {
           dispatch({ type: 'SET_INDEX_STATUS', status: 'fresh' });
         }
-      } catch {}
+      } catch (error) {
+        dispatch({ type: 'SET_INDEX_STATUS', status: 'missing' });
+        uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
+      }
     };
     buildIndexOnMount();
 

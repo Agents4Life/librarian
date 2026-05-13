@@ -79,7 +79,7 @@ Reglas base:
 - **Reportes wiki**: estado, páginas incompletas, notas stale, notas huérfanas y grafo de conexiones.
 - **Chat contextual** usando resultados de búsqueda en la wiki, con persistencia de chat como Markdown.
 - **Curaduría batch** de notas raw vía `scripts/process-raw.js` — genera propuestas, no escribe wiki directamente.
-- **Comandos slash de la TUI**: `/search`, `/status`, `/process`, `/review`, `/graph`, `/orphans`, `/stale`.
+- **Comandos slash de la TUI**: `/search`, `/status`, `/process`, `/review`, `/graph`, `/orphans`, `/stale`, `/health`, `/activity`.
 - **Suite de tests completa** con más de 30 archivos de test.
 
 ## Qué Falta
@@ -183,6 +183,8 @@ La TUI usa una metáfora de workspace con múltiples vistas. Dentro de la TUI, u
 | `/graph` | Grafo de conexiones |
 | `/orphans` | Mostrar notas huérfanas |
 | `/stale` | Mostrar notas stale (90+ días) |
+| `/health` | Dashboard de salud del grafo |
+| `/activity` | Log de actividad de la sesión |
 
 ### Consulta Única
 
@@ -208,7 +210,7 @@ librarian reject <id> --reason="..."     # Rechazar con un motivo
 librarian apply <id>                     # Ejecutar una propuesta aprobada
 ```
 
-Estados de propuesta: `pending → approved → applying → applied` o `pending → rejected`.
+Estados de propuesta: `pending → approved → applying → applied`, `pending → rejected`. En caso de error: `applying → failed` (recuperable vía `retry`) o `applying → rolled_back` (recuperable vía `reset`).
 
 ### Procesamiento Batch De Raw
 

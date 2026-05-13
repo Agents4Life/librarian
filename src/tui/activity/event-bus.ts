@@ -20,7 +20,9 @@ export const createActivityEventBus = (): ActivityEventBus => {
     emit: (event) => {
       const currentListeners = [...listeners];
       for (const listener of currentListeners) {
-        listener(event);
+        try {
+          listener(event);
+        } catch {}
       }
     },
   };

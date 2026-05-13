@@ -85,12 +85,12 @@ const parseYamlWithSubSections = (content: string): RawYamlConfig => {
         if (key === 'wiki_dir') config.vault.wiki_dir = String(parsed);
         if (key === 'reports_dir') config.vault.reports_dir = String(parsed);
       } else if (currentSection === 'tracking' && config.tracking) {
-        if (key === 'stale_threshold_days') config.tracking.stale_threshold_days = Number(parsed);
+        if (key === 'stale_threshold_days' && Number.isFinite(parsed)) config.tracking.stale_threshold_days = Number(parsed);
       } else if (currentSection === 'processing' && config.processing) {
-        if (key === 'dry_run_default') config.processing.dry_run_default = Boolean(parsed);
-        if (key === 'batch_size') config.processing.batch_size = Number(parsed);
+        if (key === 'dry_run_default' && typeof parsed === 'boolean') config.processing.dry_run_default = parsed;
+        if (key === 'batch_size' && Number.isFinite(parsed)) config.processing.batch_size = Number(parsed);
       } else if (currentSection === 'llm' && config.llm) {
-        if (key === 'timeout_ms') config.llm.timeout_ms = Number(parsed);
+        if (key === 'timeout_ms' && Number.isFinite(parsed)) config.llm.timeout_ms = Number(parsed);
         if (currentSubSection === 'primary') {
           if (!config.llm.primary) config.llm.primary = {};
           if (key === 'base_url') config.llm.primary.base_url = String(parsed);
