@@ -7,23 +7,23 @@ import assert from 'node:assert/strict';
 import { createFrontmatterTool } from '../src/tools/frontmatter.tool.js';
 
 test('frontmatter tool reads metadata from a note', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createFrontmatterTool(vaultPath);
 
   await writeFile(
     path.join(vaultPath, 'note.md'),
-    ['---', 'title: Test Note', 'purim:', '  processed: true', '  status: active', '---', '', 'Body'].join('\n'),
+    ['---', 'title: Test Note', 'librarian:', '  processed: true', '  status: active', '---', '', 'Body'].join('\n'),
   );
 
   const result = await tool.readFrontmatter('note.md');
 
   assert.equal(result.data.title, 'Test Note');
-  assert.equal(result.purim?.processed, true);
-  assert.equal(result.purim?.status, 'active');
+  assert.equal(result.librarian?.processed, true);
+  assert.equal(result.librarian?.status, 'active');
 });
 
 test('frontmatter tool counts wiki pages and statuses', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createFrontmatterTool(vaultPath);
 
   await mkdir(path.join(vaultPath, 'wiki'), { recursive: true });
@@ -31,11 +31,11 @@ test('frontmatter tool counts wiki pages and statuses', async () => {
 
   await writeFile(
     path.join(vaultPath, 'wiki', 'alpha.md'),
-    ['---', 'purim:', '  status: active', '---', '', 'Alpha'].join('\n'),
+    ['---', 'librarian:', '  status: active', '---', '', 'Alpha'].join('\n'),
   );
   await writeFile(
     path.join(vaultPath, 'raw', 'beta.md'),
-    ['---', 'purim:', '  status: review', '---', '', 'Beta'].join('\n'),
+    ['---', 'librarian:', '  status: review', '---', '', 'Beta'].join('\n'),
   );
 
   const result = await tool.getStats();
@@ -48,7 +48,7 @@ test('frontmatter tool counts wiki pages and statuses', async () => {
 });
 
 test('frontmatter health checks only wiki pages', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createFrontmatterTool(vaultPath);
 
   await mkdir(path.join(vaultPath, 'wiki', 'conceptos'), { recursive: true });

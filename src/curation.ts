@@ -233,7 +233,7 @@ export const proposeWikiPage = async (
 
   const preview = [
     '---',
-    `purim:`,
+    `librarian:`,
     `  processed: false`,
     `  status: review`,
     `source: ${rawRelativePath}`,

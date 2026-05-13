@@ -17,7 +17,7 @@ const messagesToMarkdown = (messages: ChatMessage[]): string => {
       return `${label}: ${m.content}`;
     });
 
-  return `---\npurim.type: chat\npurim.date: ${today()}\n---\n\n# Charla del ${today()}\n\n${lines.join('\n\n')}\n`;
+  return `---\nlibrarian.type: chat\nlibrarian.date: ${today()}\n---\n\n# Charla del ${today()}\n\n${lines.join('\n\n')}\n`;
 };
 
 const parseChatMessages = (content: string): ChatMessage[] => {

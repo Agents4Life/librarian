@@ -8,7 +8,7 @@ import { createSession, type AgentStep } from '../src/agent.js';
 import { runLibrarian } from '../src/harness.js';
 
 test('agent loop emits observe plan act reflect steps', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   await mkdir(path.join(vaultPath, 'wiki', 'conceptos'), { recursive: true });
   await writeFile(path.join(vaultPath, 'wiki', 'conceptos', 'clean-architecture.md'), 'Clean Architecture protects business rules.\n');
 
@@ -22,7 +22,7 @@ test('agent loop emits observe plan act reflect steps', async () => {
 });
 
 test('agent loop keeps session metadata', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const llmClient = {
     healthcheck: async () => ({ ok: true, status: 200 }),
     chat: async () => ({ content: 'respuesta', model: 'test', raw: {} }),

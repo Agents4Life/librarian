@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { createFilesystemTool } from '../src/tools/filesystem.tool.js';
 
 test('filesystem tool reads a file inside the vault', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createFilesystemTool(vaultPath);
 
   await writeFile(path.join(vaultPath, 'note.md'), '# Hello Librarian\n');
@@ -20,14 +20,14 @@ test('filesystem tool reads a file inside the vault', async () => {
 });
 
 test('filesystem tool rejects paths outside the vault', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createFilesystemTool(vaultPath);
 
   await assert.rejects(() => tool.readFile('../outside.md'), /Path escapes vault/);
 });
 
 test('filesystem tool lists directory entries', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createFilesystemTool(vaultPath);
 
   await mkdir(path.join(vaultPath, 'wiki'));

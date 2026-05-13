@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { generateVaultReports } from '../src/reports.js';
 
 test('report generator writes actionable markdown files', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   await mkdir(path.join(vaultPath, 'wiki', 'conceptos'), { recursive: true });
   await writeFile(path.join(vaultPath, 'wiki', 'conceptos', 'empty.md'), '# Empty\n');
 
@@ -20,7 +20,7 @@ test('report generator writes actionable markdown files', async () => {
 });
 
 test('report generator includes incomplete and orphan reports', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   await mkdir(path.join(vaultPath, 'wiki'), { recursive: true });
   await writeFile(path.join(vaultPath, 'wiki', 'orphan.md'), '# Orphan\n');
 

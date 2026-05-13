@@ -51,7 +51,7 @@ Cuando proceso un archivo por primera vez, le agrego metadata:
 
 ```yaml
 ---
-purim:
+librarian:
   first_seen: 2026-05-08
   last_touched: 2026-05-08
   processed: true

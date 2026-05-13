@@ -113,7 +113,7 @@ export const createFrontmatterTool = (basePath: string) => ({
 
     return {
       data: parsed.data,
-      purim: typeof parsed.data.purim === 'object' && parsed.data.purim !== null ? parsed.data.purim : undefined,
+      librarian: typeof parsed.data.librarian === 'object' && parsed.data.librarian !== null ? parsed.data.librarian : undefined,
     };
   },
 
@@ -123,8 +123,8 @@ export const createFrontmatterTool = (basePath: string) => ({
 
     for (const file of files) {
       const { data } = parseFrontmatter(await readFile(file, 'utf8'));
-      const purim = typeof data.purim === 'object' && data.purim !== null ? (data.purim as Record<string, unknown>) : undefined;
-      const status = typeof purim?.status === 'string' ? purim.status : undefined;
+      const librarian = typeof data.librarian === 'object' && data.librarian !== null ? (data.librarian as Record<string, unknown>) : undefined;
+      const status = typeof librarian?.status === 'string' ? librarian.status : undefined;
 
       if (!status) {
         continue;
@@ -235,13 +235,13 @@ export const listUnprocessed = async (basePath: string) => {
   const notes = await Promise.all(
     files.map(async (file) => {
       const { data } = parseFrontmatter(await readFile(file, 'utf8'));
-      const purim = data.purim as Record<string, unknown> | undefined;
+      const librarian = data.librarian as Record<string, unknown> | undefined;
 
       return {
         created: (await import('node:fs/promises').then(({ stat }) => stat(file))).birthtime.toISOString(),
         file: path.relative(basePath, file),
         size: (await import('node:fs/promises').then(({ stat }) => stat(file))).size,
-        processed: Boolean(purim?.processed),
+        processed: Boolean(librarian?.processed),
       };
     }),
   );

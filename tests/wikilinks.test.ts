@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { createWikilinksTool } from '../src/tools/wikilinks.tool.js';
 
 test('wikilinks tool extracts links from a note', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createWikilinksTool(vaultPath);
 
   await writeFile(path.join(vaultPath, 'note.md'), 'Link to [[Clean Architecture]] and [[DDD]].\n');
@@ -22,7 +22,7 @@ test('wikilinks tool extracts links from a note', async () => {
 });
 
 test('wikilinks tool normalizes Obsidian aliases and headings', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createWikilinksTool(vaultPath);
 
   await writeFile(path.join(vaultPath, 'note.md'), 'Links [[Clean Architecture|clean arch]] and [[DDD#Tactical Patterns]].\n');
@@ -36,7 +36,7 @@ test('wikilinks tool normalizes Obsidian aliases and headings', async () => {
 });
 
 test('wikilinks tool normalizes Obsidian path targets to note names', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createWikilinksTool(vaultPath);
 
   await writeFile(path.join(vaultPath, 'note.md'), 'Link [[conceptos/Clean Architecture.md|clean arch]].\n');
@@ -47,7 +47,7 @@ test('wikilinks tool normalizes Obsidian path targets to note names', async () =
 });
 
 test('wikilinks tool finds backlinks across markdown files', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createWikilinksTool(vaultPath);
 
   await mkdir(path.join(vaultPath, 'wiki'), { recursive: true });

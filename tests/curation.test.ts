@@ -7,10 +7,10 @@ import assert from 'node:assert/strict';
 import { proposeWikiCurations, proposeWikiPage } from '../src/curation.js';
 
 test('curation proposes a new wiki page from a raw note', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   await mkdir(path.join(vaultPath, 'raw'), { recursive: true });
 
-  await writeFile(path.join(vaultPath, 'raw', 'architecture.md'), ['---', 'purim:', '  processed: false', '---', '', 'Architecture note.'].join('\n'));
+  await writeFile(path.join(vaultPath, 'raw', 'architecture.md'), ['---', 'librarian:', '  processed: false', '---', '', 'Architecture note.'].join('\n'));
 
   const proposal = await proposeWikiPage(vaultPath, path.join('raw', 'architecture.md'));
 
@@ -21,11 +21,11 @@ test('curation proposes a new wiki page from a raw note', async () => {
 });
 
 test('curation skips a duplicate when wiki page already exists', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   await mkdir(path.join(vaultPath, 'raw'), { recursive: true });
   await mkdir(path.join(vaultPath, 'wiki', 'conceptos'), { recursive: true });
 
-  await writeFile(path.join(vaultPath, 'raw', 'architecture.md'), ['---', 'purim:', '  processed: false', '---', '', 'New detail.'].join('\n'));
+  await writeFile(path.join(vaultPath, 'raw', 'architecture.md'), ['---', 'librarian:', '  processed: false', '---', '', 'New detail.'].join('\n'));
   await writeFile(path.join(vaultPath, 'wiki', 'conceptos', 'architecture.md'), ['# Architecture', '', '## Notes', 'Existing note.'].join('\n'));
 
   const proposal = await proposeWikiPage(vaultPath, path.join('raw', 'architecture.md'));
@@ -37,11 +37,11 @@ test('curation skips a duplicate when wiki page already exists', async () => {
 });
 
 test('curation returns proposals only for curate-worthy notes', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   await mkdir(path.join(vaultPath, 'raw'), { recursive: true });
 
-  await writeFile(path.join(vaultPath, 'raw', 'idea.md'), ['---', 'purim:', '  processed: false', '---', '', 'Idea note.'].join('\n'));
-  await writeFile(path.join(vaultPath, 'raw', 'daily-note.md'), ['---', 'purim:', '  processed: false', '---', '', 'Daily note.'].join('\n'));
+  await writeFile(path.join(vaultPath, 'raw', 'idea.md'), ['---', 'librarian:', '  processed: false', '---', '', 'Idea note.'].join('\n'));
+  await writeFile(path.join(vaultPath, 'raw', 'daily-note.md'), ['---', 'librarian:', '  processed: false', '---', '', 'Daily note.'].join('\n'));
 
   const result = await proposeWikiCurations(vaultPath);
 

@@ -7,11 +7,11 @@ import assert from 'node:assert/strict';
 import { inspectRawInbox } from '../src/ingest.js';
 
 test('raw inbox lists only unprocessed notes', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   await mkdir(path.join(vaultPath, 'raw'), { recursive: true });
 
-  await writeFile(path.join(vaultPath, 'raw', 'idea.md'), ['---', 'purim:', '  processed: false', '---', '', 'Idea'].join('\n'));
-  await writeFile(path.join(vaultPath, 'raw', 'done.md'), ['---', 'purim:', '  processed: true', '---', '', 'Done'].join('\n'));
+  await writeFile(path.join(vaultPath, 'raw', 'idea.md'), ['---', 'librarian:', '  processed: false', '---', '', 'Idea'].join('\n'));
+  await writeFile(path.join(vaultPath, 'raw', 'done.md'), ['---', 'librarian:', '  processed: true', '---', '', 'Done'].join('\n'));
 
   const result = await inspectRawInbox(vaultPath);
 
@@ -22,10 +22,10 @@ test('raw inbox lists only unprocessed notes', async () => {
 });
 
 test('raw inbox marks daily notes as report', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   await mkdir(path.join(vaultPath, 'raw'), { recursive: true });
 
-  await writeFile(path.join(vaultPath, 'raw', 'daily-note.md'), ['---', 'purim:', '  processed: false', '---', '', 'Daily note'].join('\n'));
+  await writeFile(path.join(vaultPath, 'raw', 'daily-note.md'), ['---', 'librarian:', '  processed: false', '---', '', 'Daily note'].join('\n'));
 
   const result = await inspectRawInbox(vaultPath);
 

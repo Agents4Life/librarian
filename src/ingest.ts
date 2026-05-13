@@ -90,7 +90,7 @@ export const inspectRawInbox = async (basePath: string) => {
     files.map(async (file) => {
       const content = await readFile(file, 'utf8');
       const { data, body } = parseFrontmatter(content);
-      const processed = Boolean((data.purim as Record<string, unknown> | undefined)?.processed);
+      const processed = Boolean((data.librarian as Record<string, unknown> | undefined)?.processed);
       const hasContent = body.trim().length > 0;
       const fileName = path.basename(file);
       const recommendation = !hasContent || dailyPattern.test(fileName) || dailyPattern.test(file)

@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { createSemanticTool } from '../src/tools/semantic.tool.js';
 
 test('semantic tool ranks more relevant wiki pages higher', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createSemanticTool(vaultPath);
 
   await mkdir(path.join(vaultPath, 'wiki', 'conceptos'), { recursive: true });
@@ -32,7 +32,7 @@ test('semantic tool ranks more relevant wiki pages higher', async () => {
 });
 
 test('semantic tool indexes only wiki files', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createSemanticTool(vaultPath);
 
   await mkdir(path.join(vaultPath, 'wiki', 'conceptos'), { recursive: true });

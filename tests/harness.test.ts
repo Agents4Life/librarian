@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { runLibrarian } from '../src/harness.js';
 
 test('harness routes search queries to semantic search', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   await mkdir(path.join(vaultPath, 'wiki', 'conceptos'), { recursive: true });
 
   await writeFile(
@@ -23,12 +23,12 @@ test('harness routes search queries to semantic search', async () => {
 });
 
 test('harness reports wiki status with stats and graph', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   await mkdir(path.join(vaultPath, 'wiki', 'conceptos'), { recursive: true });
 
   await writeFile(
     path.join(vaultPath, 'wiki', 'conceptos', 'clean-architecture.md'),
-    ['---', 'purim:', '  status: active', '---', '', 'Clean Architecture.'].join('\n'),
+    ['---', 'librarian:', '  status: active', '---', '', 'Clean Architecture.'].join('\n'),
   );
 
   const result = await runLibrarian('estado de la wiki', vaultPath);

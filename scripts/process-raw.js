@@ -63,7 +63,7 @@ const confirm = (message) => {
   });
 };
 
-/** Mark a raw note as processed by adding purim.processed: true to frontmatter */
+/** Mark a raw note as processed by adding librarian.processed: true to frontmatter */
 const markProcessed = async (basePath, rawRelativePath) => {
   const fullPath = resolve(basePath, rawRelativePath);
   const content = await readFile(fullPath, 'utf-8');
@@ -78,7 +78,7 @@ const markProcessed = async (basePath, rawRelativePath) => {
   let newContent;
   if (fmEnd === -1) {
     // No frontmatter — add one
-    newContent = `---\npurim:\n  processed: true\n---\n\n${content}`;
+    newContent = `---\nlibrarian:\n  processed: true\n---\n\n${content}`;
   } else {
     // Insert before the closing ---
     lines.splice(fmEnd, 0, '  processed: true');

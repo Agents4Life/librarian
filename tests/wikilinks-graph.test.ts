@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { createWikilinksTool } from '../src/tools/wikilinks.tool.js';
 
 test('wikilinks tool reports orphan notes and graph stats', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createWikilinksTool(vaultPath);
 
   await mkdir(path.join(vaultPath, 'wiki'), { recursive: true });
@@ -28,7 +28,7 @@ test('wikilinks tool reports orphan notes and graph stats', async () => {
 });
 
 test('wikilinks graph only includes wiki pages', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createWikilinksTool(vaultPath);
 
   await mkdir(path.join(vaultPath, 'wiki'), { recursive: true });
@@ -46,7 +46,7 @@ test('wikilinks graph only includes wiki pages', async () => {
 });
 
 test('wikilinks tool finds the shortest path between notes', async () => {
-  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'purim-vault-'));
+  const vaultPath = await mkdtemp(path.join(os.tmpdir(), 'librarian-vault-'));
   const tool = createWikilinksTool(vaultPath);
 
   await mkdir(path.join(vaultPath, 'wiki'), { recursive: true });
