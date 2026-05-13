@@ -17,14 +17,18 @@ export interface LlmResponse {
   raw: unknown;
 }
 
+import { loadYamlConfig } from './config-loader.js';
+
+const yamlConfig = loadYamlConfig();
+
 export const defaultLlmConfig: LlmConfig = {
-  baseUrl: process.env.OLLAMA_BASE_URL ?? 'http://127.0.0.1:11434/v1',
+  baseUrl: process.env.OLLAMA_BASE_URL ?? yamlConfig?.llm?.primary?.base_url ?? 'http://127.0.0.1:11434/v1',
   fallbackBaseUrls: process.env.OLLAMA_FALLBACK_BASE_URLS?.split(',').map((value) => value.trim()).filter(Boolean) ?? [
-    'http://localhost:11434/v1',
+    yamlConfig?.llm?.fallback?.base_url ?? 'http://localhost:11434/v1',
   ],
-  model: process.env.OLLAMA_MODEL ?? 'qwen3.5:4b',
-  fallbackModel: process.env.OLLAMA_FALLBACK_MODEL ?? 'llama3.1:8b',
-  timeoutMs: Number(process.env.OLLAMA_TIMEOUT_MS ?? 600000),
+  model: process.env.OLLAMA_MODEL ?? yamlConfig?.llm?.primary?.model ?? 'qwen3.5:4b',
+  fallbackModel: process.env.OLLAMA_FALLBACK_MODEL ?? yamlConfig?.llm?.fallback?.model ?? 'llama3.1:8b',
+  timeoutMs: Number(process.env.OLLAMA_TIMEOUT_MS ?? yamlConfig?.llm?.timeout_ms ?? 600000),
 };
 
 const withTimeout = async <T>(operation: (signal: AbortSignal) => Promise<T>, timeoutMs: number) => {
