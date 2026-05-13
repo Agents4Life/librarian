@@ -4,6 +4,9 @@ import type { ReviewInfo } from "./types.js";
 import { assertTransition, TERMINAL_STATES } from "./status-machine.js";
 import { applyProposalToVault, type ApplyResult } from "./apply-proposal.js";
 import { generateOperationId } from "../proposals/operation-id.js";
+import { loadTransaction } from "./transaction-store.js";
+import { readFile, readdir } from "node:fs/promises";
+import path from "node:path";
 
 export class ReviewService {
   constructor(
@@ -132,6 +135,49 @@ export class ReviewService {
     this.recordTransition(proposal, operationId, fromStatus, "pending", proposal.attempts, "manual-reset", previousError ?? undefined);
 
     return this.store.save(proposal);
+  }
+
+  async recoverStuck(limit?: number): Promise<StoredProposal[]> {
+    const stuck = await this.store.list("applying");
+    const toRecover = limit ? stuck.slice(0, limit) : stuck;
+    const recovered: StoredProposal[] = [];
+
+    for (const proposal of toRecover) {
+      let hasCompletedTransaction = false;
+
+      try {
+        const txDir = path.join(this.vaultPath, ".librarian", "transactions");
+        const files = await readdir(txDir);
+        for (const file of files) {
+          if (!file.endsWith(".json")) continue;
+          try {
+            const raw = await readFile(path.join(txDir, file), "utf8");
+            const tx = JSON.parse(raw);
+            if (tx.proposalId === proposal.id && tx.status === "completed") {
+              hasCompletedTransaction = true;
+              break;
+            }
+          } catch {
+            // Skip malformed transaction files
+          }
+        }
+      } catch {
+        // No transactions dir — no completed transaction
+      }
+
+      if (!hasCompletedTransaction) {
+        const operationId = generateOperationId();
+        const fromStatus = proposal.status;
+
+        proposal.status = "approved";
+        proposal.updatedAt = new Date().toISOString();
+        this.recordTransition(proposal, operationId, fromStatus, "approved", proposal.attempts, "stuck-recovery");
+        await this.store.save(proposal);
+        recovered.push(proposal);
+      }
+    }
+
+    return recovered;
   }
 
   private recordTransition(
