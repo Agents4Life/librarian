@@ -19,6 +19,11 @@ export const Header: React.FC = () => {
       ? 'ollama:...'
       : 'ollama:down';
 
+  const inboxNode = state.workspace.find((n) => n.type === "proposal-inbox");
+  const pendingCount = inboxNode && inboxNode.type === "proposal-inbox"
+    ? inboxNode.proposals.length
+    : 0;
+
   return (
     <Box flexDirection="row" justifyContent="space-between" paddingX={1}>
       <Box gap={1}>
@@ -29,10 +34,10 @@ export const Header: React.FC = () => {
         <Text dimColor>·</Text>
         {statusIcon}
         <Text dimColor>{statusText}</Text>
-        {state.reviews.length > 0 && (
+        {pendingCount > 0 && (
           <>
             <Text dimColor>·</Text>
-            <Text color={theme.warning}>{state.reviews.filter((r) => r.status === 'pending').length} reviews</Text>
+            <Text color={theme.warning}>{pendingCount} pending</Text>
           </>
         )}
       </Box>

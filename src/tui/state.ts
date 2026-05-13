@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 import { randomUUID } from 'node:crypto';
 
 import type { ChatMessage } from './types.js';
+import type { StoredProposal } from '../proposals/types.js';
 
 export interface SearchResult {
   file: string;
@@ -59,7 +60,9 @@ export type WorkspaceNode =
   | { type: 'graph'; id: string; stats: GraphStats; createdAt: number }
   | { type: 'process'; id: string; inbox: InboxSummary; createdAt: number }
   | { type: 'orphans'; id: string; notes: OrphanNote[]; createdAt: number }
-  | { type: 'stale'; id: string; notes: StaleNote[]; createdAt: number };
+  | { type: 'stale'; id: string; notes: StaleNote[]; createdAt: number }
+  | { type: 'proposal-inbox'; id: string; proposals: StoredProposal[]; cursor: number; createdAt: number }
+  | { type: 'proposal-detail'; id: string; proposal: StoredProposal; showPreview: boolean; createdAt: number };
 
 export interface ActivityEntry {
   id: string;
@@ -99,7 +102,10 @@ export type AppAction =
   | { type: 'REJECT_REVIEW'; id: string }
   | { type: 'ADD_RECENT'; item: string }
   | { type: 'SET_COMPOSER_VALUE'; value: string }
-  | { type: 'SET_LOADING'; loading: boolean };
+  | { type: 'SET_LOADING'; loading: boolean }
+  | { type: 'UPDATE_INBOX_PROPOSALS'; nodeId: string; proposals: StoredProposal[] }
+  | { type: 'MOVE_CURSOR'; nodeId: string; direction: 'up' | 'down' }
+  | { type: 'TOGGLE_PREVIEW'; nodeId: string };
 
 const createNodeId = () => randomUUID();
 
@@ -191,6 +197,42 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
 
     case 'SET_LOADING':
       return { ...state, loading: action.loading };
+
+    case 'UPDATE_INBOX_PROPOSALS':
+      return {
+        ...state,
+        workspace: state.workspace.map((n) =>
+          n.id === action.nodeId && n.type === 'proposal-inbox'
+            ? { ...n, proposals: action.proposals, cursor: Math.min(n.cursor, Math.max(0, action.proposals.length - 1)) }
+            : n,
+        ),
+      };
+
+    case 'MOVE_CURSOR': {
+      const node = state.workspace.find((n) => n.id === action.nodeId);
+      if (!node || node.type !== 'proposal-inbox') return state;
+      const maxIdx = node.proposals.length - 1;
+      const delta = action.direction === 'down' ? 1 : -1;
+      const next = Math.max(0, Math.min(maxIdx, node.cursor + delta));
+      return {
+        ...state,
+        workspace: state.workspace.map((n) =>
+          n.id === action.nodeId && n.type === 'proposal-inbox'
+            ? { ...n, cursor: next }
+            : n,
+        ),
+      };
+    }
+
+    case 'TOGGLE_PREVIEW':
+      return {
+        ...state,
+        workspace: state.workspace.map((n) =>
+          n.id === action.nodeId && n.type === 'proposal-detail'
+            ? { ...n, showPreview: !n.showPreview }
+            : n,
+        ),
+      };
 
     default:
       return state;

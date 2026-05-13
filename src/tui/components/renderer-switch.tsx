@@ -4,7 +4,11 @@ import { theme } from '../theme.js';
 import { useAppState, type WorkspaceNode } from '../state.js';
 import { getRenderer } from '../renderers/registry.js';
 
-export const RendererSwitch: React.FC = () => {
+interface RendererSwitchProps {
+  onAction?: (action: string) => void;
+}
+
+export const RendererSwitch: React.FC<RendererSwitchProps> = ({ onAction }) => {
   const { state } = useAppState();
   const activeNode = state.workspace.find((n) => n.id === state.activeNodeId);
 
@@ -35,5 +39,5 @@ export const RendererSwitch: React.FC = () => {
     );
   }
 
-  return <Renderer node={activeNode} onAction={() => {}} />;
+  return <Renderer node={activeNode} onAction={onAction ?? (() => {})} />;
 };
