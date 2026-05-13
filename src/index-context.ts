@@ -1,6 +1,6 @@
 import type { NoteIndex } from "./indexer/types.js";
 import { buildIndex } from "./indexer/builder.js";
-import { loadIndex, saveIndex } from "./indexer/store.js";
+import { computeVaultFingerprint, loadIndex, saveIndex } from "./indexer/store.js";
 import { createQueryApi } from "./indexer/query.js";
 
 export type QueryApi = ReturnType<typeof createQueryApi>;
@@ -17,9 +17,17 @@ export type IndexContext = {
 
 export const buildOrLoadIndex = async (vaultPath: string): Promise<NoteIndex> => {
   const existing = await loadIndex(vaultPath);
-  if (existing && existing.vaultPath === vaultPath) return existing;
+
+  if (existing && existing.vaultPath === vaultPath) {
+    const currentFingerprint = await computeVaultFingerprint(vaultPath);
+    if (existing.vaultFingerprint === currentFingerprint) {
+      return existing;
+    }
+    // Fingerprint mismatch — vault changed, rebuild
+  }
 
   const index = await buildIndex(vaultPath);
+  index.vaultFingerprint = await computeVaultFingerprint(vaultPath);
   await saveIndex(vaultPath, index);
   return index;
 };
