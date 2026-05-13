@@ -11,8 +11,8 @@
  *   node scripts/process-raw.js --limit 5 --yes    # skip confirmation
  */
 
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -21,6 +21,7 @@ const projectRoot = resolve(__dirname, '..');
 const { inspectRawInbox } = await import(`${projectRoot}/dist/ingest.js`);
 const { proposeWikiPage } = await import(`${projectRoot}/dist/curation.js`);
 const { createSemanticTool } = await import(`${projectRoot}/dist/tools/semantic.tool.js`);
+const { appendWikiLog, ensureWikiStructure, updateWikiIndex } = await import(`${projectRoot}/dist/wiki-maintenance.js`);
 
 // --- CLI args ---
 const args = process.argv.slice(2);
@@ -63,29 +64,27 @@ const confirm = (message) => {
   });
 };
 
-/** Mark a raw note as processed by adding librarian.processed: true to frontmatter */
+const ledgerPath = (basePath) => path.join(basePath, 'state', 'processed.json');
+
+const loadLedger = async (basePath) => {
+  try {
+    const raw = await readFile(ledgerPath(basePath), 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return { processed: {} };
+  }
+};
+
+const saveLedger = async (basePath, ledger) => {
+  const dir = path.dirname(ledgerPath(basePath));
+  await mkdir(dir, { recursive: true });
+  await writeFile(ledgerPath(basePath), JSON.stringify(ledger, null, 2), 'utf-8');
+};
+
 const markProcessed = async (basePath, rawRelativePath) => {
-  const fullPath = resolve(basePath, rawRelativePath);
-  const content = await readFile(fullPath, 'utf-8');
-  const lines = content.split('\n');
-
-  // Find the second --- (end of frontmatter)
-  let fmEnd = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === '---') { fmEnd = i; break; }
-  }
-
-  let newContent;
-  if (fmEnd === -1) {
-    // No frontmatter — add one
-    newContent = `---\nlibrarian:\n  processed: true\n---\n\n${content}`;
-  } else {
-    // Insert before the closing ---
-    lines.splice(fmEnd, 0, '  processed: true');
-    newContent = lines.join('\n');
-  }
-
-  await writeFile(fullPath, newContent, 'utf-8');
+  const ledger = await loadLedger(basePath);
+  ledger.processed[rawRelativePath] = { at: new Date().toISOString() };
+  await saveLedger(basePath, ledger);
 };
 
 // --- Main ---
@@ -136,7 +135,15 @@ try {
       if (proposal.type === 'skip') {
         process.stdout.write(` SKIP (${proposal.duplicate})\n`);
         log(`    SKIP: ${proposal.duplicate} of ${proposal.duplicateOf}`);
-        if (!dryRun) await markProcessed(vaultPath, note.file);
+        if (!dryRun) {
+          await markProcessed(vaultPath, note.file);
+          await appendWikiLog(vaultPath, {
+            action: 'skipped',
+            reason: proposal.duplicate,
+            source: note.file,
+            target: proposal.duplicateOf || proposal.target,
+          });
+        }
         stats.skipped++;
         continue;
       }
@@ -145,11 +152,17 @@ try {
         process.stdout.write(' PREVIEW\n');
         log(`    -> ${proposal.target} [${proposal.category}] tags:${proposal.tags.join(',')}`);
       } else {
-        // Write to wiki
+        await ensureWikiStructure(vaultPath);
         const targetPath = resolve(vaultPath, proposal.target);
         const targetDir = targetPath.substring(0, targetPath.lastIndexOf('/'));
         await mkdir(targetDir, { recursive: true });
         await writeFile(targetPath, proposal.preview, 'utf-8');
+        await markProcessed(vaultPath, note.file);
+        await appendWikiLog(vaultPath, {
+          action: 'created',
+          source: note.file,
+          target: proposal.target,
+        });
         process.stdout.write(' DONE\n');
         log(`    -> ${proposal.target} [${proposal.category}]`);
         log(`       tags: ${proposal.tags.join(', ') || 'none'}`);
@@ -157,8 +170,6 @@ try {
         if (proposal.suggestedLinks.length > 0) {
           log(`       links: ${proposal.suggestedLinks.join(', ')}`);
         }
-        // Mark raw note as processed
-        await markProcessed(vaultPath, note.file);
       }
 
       stats.created++;
@@ -166,6 +177,16 @@ try {
       process.stdout.write(` ERROR: ${error.message}\n`);
       log(`    ERROR: ${error.message}`);
       stats.errors++;
+    }
+  }
+
+  // Update wiki index after batch
+  if (!dryRun && stats.created > 0) {
+    try {
+      await updateWikiIndex(vaultPath);
+      log('Wiki index updated.');
+    } catch (error) {
+      log(`Warning: failed to update wiki index: ${error.message}`);
     }
   }
 

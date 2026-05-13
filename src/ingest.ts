@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const dailyPattern = /(^|\/)(daily|dailies|operational|ops)[-_ ]?/i;
@@ -82,9 +82,20 @@ const walkMarkdownFiles = async (directory: string): Promise<string[]> => {
   return nested.flat();
 };
 
+const loadLedger = async (basePath: string): Promise<Set<string>> => {
+  try {
+    const raw = await readFile(path.join(basePath, 'state', 'processed.json'), 'utf8');
+    const data = JSON.parse(raw) as { processed?: Record<string, unknown> };
+    return new Set(Object.keys(data.processed ?? {}));
+  } catch {
+    return new Set();
+  }
+};
+
 export const inspectRawInbox = async (basePath: string) => {
   const rawPath = path.join(basePath, 'raw');
   const files = await walkMarkdownFiles(rawPath).catch(() => [] as string[]);
+  const ledgerProcessed = await loadLedger(basePath);
 
   const notes = await Promise.all(
     files.map(async (file) => {
@@ -99,11 +110,13 @@ export const inspectRawInbox = async (basePath: string) => {
 
       const fileStat = await stat(file);
 
+      const relativePath = path.relative(basePath, file);
+
       return {
         created: fileStat.birthtime.toISOString(),
-        file: path.relative(basePath, file),
+        file: relativePath,
         has_content: hasContent,
-        processed,
+        processed: processed || ledgerProcessed.has(relativePath),
         recommendation,
         size: fileStat.size,
       };

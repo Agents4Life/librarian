@@ -215,19 +215,7 @@ flowchart TD
     end
 ```
 
-## Documentation
-
-| File | Purpose |
-|------|---------|
-| [SAFETY.md](SAFETY.md) | Safety, privacy, and write behavior |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
-| [SOUL.md](SOUL.md) | Agent identity and behavior |
-| [docs/product/CONTEXT.md](docs/product/CONTEXT.md) | Domain language and invariants |
-| [docs/design/IDEA.md](docs/design/IDEA.md) | Design notes and mental model |
-| [docs/design/contracts/tools.md](docs/design/contracts/tools.md) | Tool contracts |
-| [docs/adr/](docs/adr/) | Architectural Decision Records |
-
-## Relationship To Second Brain Ecosystem
+## Development
 
 Librarian is the AI layer of the [Second Brain Ecosystem](https://github.com/VanessaPellegrini/second-brain-ecosystem), a beginner-friendly guide to building a personal knowledge system with Obsidian.
 
