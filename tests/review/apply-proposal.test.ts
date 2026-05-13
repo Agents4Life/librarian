@@ -104,3 +104,33 @@ test("applyProposalToVault creates nested directories for target", async () => {
   const content = await readFile(targetPath, "utf8");
   assert.ok(content.length > 0);
 });
+
+test("applyProposalToVault rejects path traversal with ..", async () => {
+  const vaultPath = await createTestVault();
+  const store = new FileProposalStore(vaultPath);
+
+  const created = await store.create({
+    sourcePath: "raw/test.md",
+    proposal: stubProposal({ target: "../../etc/passwd" }),
+  });
+
+  await assert.rejects(
+    () => applyProposalToVault(vaultPath, created),
+    { message: /Path traversal detected/ },
+  );
+});
+
+test("applyProposalToVault rejects absolute target path", async () => {
+  const vaultPath = await createTestVault();
+  const store = new FileProposalStore(vaultPath);
+
+  const created = await store.create({
+    sourcePath: "raw/test.md",
+    proposal: stubProposal({ target: "/etc/passwd" }),
+  });
+
+  await assert.rejects(
+    () => applyProposalToVault(vaultPath, created),
+    { message: /Path traversal detected/ },
+  );
+});
