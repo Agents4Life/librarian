@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import { runLibrarian } from './harness.js';
 import { listProposals, approveProposal, rejectProposal } from './commands/proposals.js';
+import { getProposal } from './commands/proposal.js';
+import { previewProposal } from './commands/preview.js';
+import { applyProposal } from './commands/apply.js';
 import type { ProposalStatus } from './proposals/types.js';
 
 const argv = process.argv.slice(2);
@@ -10,6 +13,16 @@ const operationalCommands: Record<string, (args: string[]) => Promise<void>> = {
     const status = args.find((a) => a.startsWith("--status="))?.split("=")[1] as ProposalStatus | undefined;
     await listProposals(undefined, { status });
   },
+  proposal: async (args) => {
+    const id = args[0];
+    if (!id) { console.error("Usage: librarian proposal <id>"); process.exit(1); }
+    await getProposal(id);
+  },
+  preview: async (args) => {
+    const id = args[0];
+    if (!id) { console.error("Usage: librarian preview <id>"); process.exit(1); }
+    await previewProposal(id);
+  },
   approve: async (args) => {
     const id = args[0];
     if (!id) { console.error("Usage: librarian approve <id>"); process.exit(1); }
@@ -18,7 +31,13 @@ const operationalCommands: Record<string, (args: string[]) => Promise<void>> = {
   reject: async (args) => {
     const id = args[0];
     if (!id) { console.error("Usage: librarian reject <id>"); process.exit(1); }
-    await rejectProposal(id);
+    const reason = args.find((a) => a.startsWith("--reason="))?.split("=").slice(1).join("=");
+    await rejectProposal(id, reason);
+  },
+  apply: async (args) => {
+    const id = args[0];
+    if (!id) { console.error("Usage: librarian apply <id>"); process.exit(1); }
+    await applyProposal(id);
   },
 };
 
