@@ -12,6 +12,7 @@ export type Intent =
   | 'wiki-status'
   | 'incomplete-notes'
   | 'stale-notes'
+  | 'orphan-notes'
   | 'connections'
   | 'ask'
   | 'unknown';

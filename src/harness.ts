@@ -127,6 +127,11 @@ export const runLibrarian = async (
       result = await frontmatter.listStaleNotes(defaultConfig.staleThresholdDays);
       break;
 
+    case "orphan-notes":
+      steps.push({ kind: "act", message: "Listar notas huérfanas", tool: "wikilinks.getOrphans" });
+      result = indexContext.query.getOrphans();
+      break;
+
     case "connections":
       steps.push({ kind: "act", message: "Calcular grafo de conexiones", tool: "wikilinks.getGraphStats" });
       result = await wikilinks.getGraphStats();
