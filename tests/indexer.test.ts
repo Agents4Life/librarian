@@ -5,6 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { buildIndex, loadIndex, saveIndex, createQueryApi, parseNote, detectSection, computeContentHash, extractHeadings, extractLinks, extractTags, parseFrontmatter } from "../src/indexer/index.js";
+import { buildOrLoadIndex, createIndexContext } from "../src/index-context.js";
 
 const createVault = async () => {
   const vaultPath = await mkdtemp(path.join(os.tmpdir(), "librarian-vault-"));
@@ -288,4 +289,102 @@ test("query API - getStats", async () => {
   assert.ok(stats.by_section.wiki >= 2);
   assert.ok(stats.by_section.raw >= 1);
   assert.equal(stats.by_status.active, 1);
+});
+
+test("query API - findPath finds shortest path between notes", async () => {
+  const vaultPath = await createVault();
+  const index = await buildIndex(vaultPath);
+  const query = createQueryApi(index);
+
+  const result = query.findPath("clean-architecture", "solid");
+  assert.equal(result.found, true);
+  assert.ok(result.path.length >= 2);
+  assert.ok(result.path.includes("clean-architecture"));
+  assert.ok(result.path.includes("solid"));
+});
+
+test("query API - findPath returns not found for disconnected notes", async () => {
+  const vaultPath = await createVault();
+  await writeFile(path.join(vaultPath, "wiki", "conceptos", "isolated.md"), "# Isolated\n\nNo links.");
+  const index = await buildIndex(vaultPath);
+  const query = createQueryApi(index);
+
+  const result = query.findPath("clean-architecture", "isolated");
+  assert.equal(result.found, false);
+  assert.deepEqual(result.path, []);
+});
+
+test("query API - findPath returns not found for nonexistent notes", async () => {
+  const vaultPath = await createVault();
+  const index = await buildIndex(vaultPath);
+  const query = createQueryApi(index);
+
+  const result = query.findPath("nonexistent-a", "nonexistent-b");
+  assert.equal(result.found, false);
+});
+
+test("query API - getSimilar ranks related notes", async () => {
+  const vaultPath = await createVault();
+  const index = await buildIndex(vaultPath);
+  const query = createQueryApi(index);
+
+  const similar = query.getSimilar("wiki/conceptos/clean-architecture.md", 5);
+  assert.ok(similar.length >= 1);
+  assert.ok(similar[0].score > 0);
+  assert.ok(similar.every((s) => s.note.path !== "wiki/conceptos/clean-architecture.md"));
+});
+
+test("query API - getSimilar returns empty for nonexistent path", async () => {
+  const vaultPath = await createVault();
+  const index = await buildIndex(vaultPath);
+  const query = createQueryApi(index);
+
+  const similar = query.getSimilar("nonexistent.md");
+  assert.deepEqual(similar, []);
+});
+
+test("index-context - buildOrLoadIndex builds new index when none exists", async () => {
+  const vaultPath = await createVault();
+  const index = await buildOrLoadIndex(vaultPath);
+
+  assert.ok(index);
+  assert.equal(index.version, 1);
+  assert.ok(Object.keys(index.notes).length >= 4);
+});
+
+test("index-context - buildOrLoadIndex loads existing index", async () => {
+  const vaultPath = await createVault();
+  const built = await buildIndex(vaultPath);
+  await saveIndex(vaultPath, built);
+
+  const loaded = await buildOrLoadIndex(vaultPath);
+  assert.deepEqual(Object.keys(loaded.notes), Object.keys(built.notes));
+});
+
+test("index-context - buildOrLoadIndex rebuilds when vaultPath mismatches", async () => {
+  const vaultPath = await createVault();
+  const otherVault = await mkdtemp(path.join(os.tmpdir(), "librarian-vault-"));
+
+  const built = await buildIndex(vaultPath);
+  await saveIndex(otherVault, built);
+
+  mkdir(path.join(otherVault, "raw"), { recursive: true }).then(() =>
+    writeFile(path.join(otherVault, "raw", "note.md"), "# Test"),
+  );
+
+  const loaded = await buildOrLoadIndex(otherVault);
+  assert.ok(loaded);
+});
+
+test("index-context - createIndexContext returns index and query", async () => {
+  const vaultPath = await createVault();
+  const ctx = await createIndexContext(vaultPath);
+
+  assert.ok(ctx.index);
+  assert.ok(ctx.query);
+  assert.ok(ctx.query.getByPath);
+  assert.ok(ctx.query.search);
+
+  const note = ctx.query.getByPath("wiki/conceptos/clean-architecture.md");
+  assert.ok(note);
 });

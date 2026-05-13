@@ -118,6 +118,71 @@ export const createQueryApi = (index: NoteIndex) => {
     return results;
   };
 
+  const findPath = (source: string, target: string) => {
+    const sourceNotes = getByTitle(source);
+    const targetNotes = getByTitle(target);
+
+    if (sourceNotes.length === 0 || targetNotes.length === 0) {
+      return { found: false as const, length: 0, path: [] };
+    }
+
+    const graph = new Map<string, string[]>();
+    for (const note of allNotes()) {
+      const neighbors = note.links
+        .map((link) => getByTitle(link))
+        .flat()
+        .filter((n): n is Note => n !== undefined)
+        .map((n) => n.title);
+      graph.set(note.title, [...new Set(neighbors)]);
+    }
+
+    const queue: Array<{ node: string; path: string[] }> = [];
+    for (const sn of sourceNotes) {
+      queue.push({ node: sn.title, path: [sn.title] });
+    }
+    const visited = new Set(sourceNotes.map((n) => n.title));
+    const targetTitles = new Set(targetNotes.map((n) => n.title));
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (!current) continue;
+
+      if (targetTitles.has(current.node)) {
+        return { found: true as const, length: current.path.length - 1, path: current.path };
+      }
+
+      for (const neighbor of graph.get(current.node) ?? []) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push({ node: neighbor, path: [...current.path, neighbor] });
+        }
+      }
+    }
+
+    return { found: false as const, length: 0, path: [] };
+  };
+
+  const getSimilar = (relativePath: string, n = 5) => {
+    const note = getByPath(relativePath);
+    if (!note) return [];
+
+    const profile = tokenize(
+      [note.title, ...note.tags, ...note.headings].join(" "),
+    );
+
+    return allNotes()
+      .filter((candidate) => candidate.path !== relativePath)
+      .map((candidate) => {
+        const candidateProfile = tokenize(
+          [candidate.title, ...candidate.tags, ...candidate.headings].join(" "),
+        );
+        return { note: candidate, score: jaccardScore(profile, candidateProfile) };
+      })
+      .filter((result) => result.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, n);
+  };
+
   const getStats = () => {
     const notes = allNotes();
     const bySection: Record<string, number> = {};
@@ -151,6 +216,8 @@ export const createQueryApi = (index: NoteIndex) => {
     getStale,
     getIncomplete,
     search,
+    findPath,
+    getSimilar,
     getStats,
   };
 };
