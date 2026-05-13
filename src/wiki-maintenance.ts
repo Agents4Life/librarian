@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, open, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { ToolContext } from "./index-context.js";
@@ -83,14 +83,14 @@ export const appendWikiLog = async (vaultPath: string, event: WikiLogEvent) => {
   await ensureWikiStructure(vaultPath);
 
   const logPath = path.join(vaultPath, "wiki", "log.md");
-  const hasLog = await exists(logPath);
 
-  if (!hasLog) {
-    await writeFile(logPath, "# Wiki Log\n\n", "utf8");
-  } else {
-    const current = await readFile(logPath, "utf8");
-    if (!current.startsWith("# Wiki Log")) {
-      await writeFile(logPath, `# Wiki Log\n\n${current}`, "utf8");
+  try {
+    const handle = await open(logPath, "wx", 0o644);
+    await handle.write("# Wiki Log\n\n");
+    await handle.close();
+  } catch (error) {
+    if (!(error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "EEXIST")) {
+      throw error;
     }
   }
 

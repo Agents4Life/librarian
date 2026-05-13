@@ -368,9 +368,8 @@ test("index-context - buildOrLoadIndex rebuilds when vaultPath mismatches", asyn
   const built = await buildIndex(vaultPath);
   await saveIndex(otherVault, built);
 
-  mkdir(path.join(otherVault, "raw"), { recursive: true }).then(() =>
-    writeFile(path.join(otherVault, "raw", "note.md"), "# Test"),
-  );
+  await mkdir(path.join(otherVault, "raw"), { recursive: true });
+  await writeFile(path.join(otherVault, "raw", "note.md"), "# Test");
 
   const loaded = await buildOrLoadIndex(otherVault);
   assert.ok(loaded);
