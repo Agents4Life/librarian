@@ -27,7 +27,7 @@ export const lintVault = async (vaultPath: string, opts?: { skipClaims?: boolean
   const queryApi = ctx.query;
 
   // Generate reports (incomplete, stale, orphans)
-  const reports = await generateVaultReports(vp, queryApi as any);
+  const reports = await generateVaultReports(vp, queryApi);
 
   const incomplete = queryApi.getIncomplete();
   const stale = queryApi.getStale();
@@ -92,7 +92,7 @@ export const lintVault = async (vaultPath: string, opts?: { skipClaims?: boolean
 
   // Refresh wiki index
   try {
-    await updateWikiIndex({ vaultPath: vp, queryApi: queryApi as any });
+    await updateWikiIndex({ vaultPath: vp, queryApi });
   } catch { /* best effort */ }
 
   const healthy =

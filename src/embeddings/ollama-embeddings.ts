@@ -58,7 +58,13 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
       if (!response.ok) return false;
       
       const data = await response.json() as { models: Array<{ name: string }> };
-      return data.models.some(m => m.name.includes(this.model) || m.name.includes(this.model.split(':')[0]));
+      return data.models.some(m => {
+        const n = m.name.toLowerCase();
+        const nBase = n.split(':')[0];
+        const full = this.model.toLowerCase();
+        const base = full.split(':')[0];
+        return n === full || nBase === full || n === base || nBase === base;
+      });
     } catch {
       return false;
     }
