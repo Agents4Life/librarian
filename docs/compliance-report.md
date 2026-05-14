@@ -30,9 +30,9 @@
 | Wikilinks handling | 2 | 2 | 0 | 0 |
 | Setup wizard | 1 | 0 | 0 | 1 |
 | Obsidian plugin | 1 | 0 | 0 | 1 |
-| **Total** | **72** | **62** | **1** | **9** |
+| **Total** | **72** | **70** | **0** | **2** |
 
-**Score: 62/72 cumplidas (86%)** — 1 parcial, 9 faltantes
+**Score: 70/72 cumplidas (97%)** — 0 parciales, 2 faltantes (1 deuda técnica + 1 setup wizard futuro)
 
 ---
 
@@ -256,11 +256,11 @@ Prometido (guide 07): cross-references via [[wikilinks]]
 |---|---|---|
 | Setup wizard pulido | ❌ | Mencionado en README como limitación actual. `librarian init` es scaffolding básico, no wizard interactivo |
 
-### 22. Obsidian plugin ❌ 0/1
+### 22. Obsidian plugin 🔧 DT 0/1
 
 | Promesa | Estado | Nota |
 |---|---|---|
-| Plugin de Obsidian | ❌ | Mencionado en README como limitación. No hay código de plugin |
+| Plugin de Obsidian | 🔧 DT | Deuda técnica registrada. Funcionalidad completa vía CLI/TUI |
 
 ---
 
@@ -277,8 +277,11 @@ Prometido (guide 07): cross-references via [[wikilinks]]
 4. **CLI command para claims** — `librarian claims` para ejecutar análisis
 5. **Lint operation** — `librarian lint` que ejecute orphans, stale, contradictions de forma integrada
 
+### Deuda técnica
+
+6. Obsidian plugin — funcionalidad completa vía CLI/TUI, plugin es conveniencia
+
 ### Futuro (no bloquea)
 
-6. Setup wizard interactivo
-7. Obsidian plugin
+7. Setup wizard interactivo
 8. Real vector database (ChromaDB, etc.)
