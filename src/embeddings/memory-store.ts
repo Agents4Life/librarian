@@ -77,4 +77,8 @@ export class MemoryEmbeddingStore implements EmbeddingStore {
   clear(): void {
     this.store.clear();
   }
+  
+  keys(): string[] {
+    return Array.from(this.store.keys());
+  }
 }

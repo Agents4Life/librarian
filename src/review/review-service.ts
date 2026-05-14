@@ -97,7 +97,7 @@ export class ReviewService {
 
       // Post-apply: update wiki index and log
       try {
-        await updateWikiIndex({ vaultPath: this.vaultPath });
+        await updateWikiIndex({ vaultPath: this.vaultPath } as unknown as Parameters<typeof updateWikiIndex>[0]);
       } catch { /* non-critical */ }
 
       try {

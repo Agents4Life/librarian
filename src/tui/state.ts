@@ -273,11 +273,19 @@ export const createInitialState = (vaultPath: string): AppState => {
     createdAt: Date.now(),
   };
 
+  const chatNodeId = createNodeId();
+  const chatNode: WorkspaceNode = {
+    type: 'chat',
+    id: chatNodeId,
+    messages: [],
+    createdAt: Date.now(),
+  };
+
   return {
     vaultPath,
     ollamaStatus: 'checking',
     indexStatus: 'missing',
-    workspace: [helpNode],
+    workspace: [helpNode, chatNode],
     activeNodeId: helpNodeId,
     navigationHistory: [helpNodeId],
     historyIndex: 0,

@@ -56,8 +56,7 @@ const checkContradiction = async (claimA: Claim, claimB: Claim): Promise<Contrad
       suggested_resolution: string;
     };
 
-    const isContradiction = parsed.is_contradiction === true
-      || parsed.is_contradiction === 'true';
+    const isContradiction = parsed.is_contradiction === true;
     if (!isContradiction) return null;
 
     const validSeverities: ContradictionSeverity[] = ['critical', 'warning', 'minor'];
