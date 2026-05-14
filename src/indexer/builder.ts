@@ -3,6 +3,7 @@ import path from "node:path";
 
 import type { Note, NoteIndex, SectionMap } from "./types.js";
 import { parseNote } from "./parser.js";
+import { isEmbeddingAvailable, getEmbeddingProvider, getEmbeddingStore } from "../embeddings/index.js";
 
 const walkMarkdownFiles = async (directory: string): Promise<string[]> => {
   const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
@@ -97,10 +98,39 @@ export const buildIndex = async (
 
   computeBacklinks(notes);
 
-  return {
+  const index: NoteIndex = {
     version: 1,
     builtAt: new Date().toISOString(),
     vaultPath,
     notes,
   };
+
+  // Fire-and-forget: generate embeddings in the background after index is built
+  maybeGenerateEmbeddings(index).catch(() => {
+    // Silently ignore embedding generation failures
+  });
+
+  return index;
+};
+
+const maybeGenerateEmbeddings = async (index: NoteIndex): Promise<void> => {
+  const available = await isEmbeddingAvailable();
+  if (!available) return;
+
+  const provider = getEmbeddingProvider();
+  const store = getEmbeddingStore();
+
+  const wikiNotes = Object.values(index.notes)
+    .filter((n) => n.section === "wiki" && n.wordCount > 20);
+
+  for (const note of wikiNotes) {
+    const text = [note.title, ...note.tags, ...note.headings].join(" ");
+    try {
+      const vector = await provider.embed(text);
+      store.upsert(note.path, text, vector);
+      note.embedding = vector.values;
+    } catch {
+      // Skip individual failures
+    }
+  }
 };

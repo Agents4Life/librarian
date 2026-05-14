@@ -84,6 +84,8 @@ export const runLibrarian = async (
         findPath: () => ({ found: false as const, length: 0, path: [] }),
         getSimilar: () => [],
         getStats: () => ({ total_files: 0, by_section: {}, by_status: {} }),
+        searchEmbeddings: async () => [],
+        getSimilarEmbeddings: async () => [],
       },
     };
   }
