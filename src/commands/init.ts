@@ -19,6 +19,7 @@ const DIRECTORIES: string[] = [
   '.librarian',
   '.librarian/proposals',
   '.librarian/transactions',
+  'templates',
 ];
 
 const WIKI_INDEX = `# Wiki Index
@@ -71,6 +72,192 @@ interface FileTemplate {
   content: () => string;
 }
 
+const DAILY_TEMPLATE = `---
+type: daily
+created: {{date:YYYY-MM-DD}}
+tags: []
+---
+
+# {{date:YYYY-MM-DD}} — {{date:dddd}}
+
+## Focus
+
+- [ ] 
+
+## Notes
+
+- 
+
+## Ideas
+
+- 
+
+## Captured
+
+- 
+
+---
+
+## Links
+
+- [[weekly-review-{{date:gggg-ww}}]]
+`;
+
+const WEEKLY_REVIEW_TEMPLATE = `---
+type: weekly-review
+created: {{date:YYYY-MM-DD}}
+tags: []
+---
+
+# Weekly Review — {{date:gggg-ww}}
+
+## 1. Clean Inbox
+
+- [ ] Move inbox notes to their PARA home
+- [ ] Move valuable AI sources to \`raw/\`
+- [ ] Delete notes that are no longer useful
+
+## 2. Review Projects
+
+- [ ] Update active project notes
+- [ ] Move completed projects to archive
+- [ ] Create new project notes if needed
+
+## 3. Plan Next Week
+
+- [ ] Review calendar and commitments
+- [ ] Set 3 priorities for the week
+- [ ] Create next week's daily notes if useful
+
+## Notes
+
+- 
+`;
+
+const SOURCE_TEMPLATE = `---
+type: note
+created: {{date:YYYY-MM-DD}}
+source_url:
+source_type:
+author:
+tags: []
+---
+
+# {{title}}
+
+## Summary
+
+
+## Notes
+
+
+## Links
+
+`;
+
+const RAW_SOURCE_TEMPLATE = `---
+type: source
+created: {{date:YYYY-MM-DD}}
+source_url:
+source_type:
+author:
+status: raw
+tags: []
+librarian:
+  processed: false
+  status: active
+---
+
+# {{title}}
+
+## Source
+
+
+## Notes
+
+
+## Key Ideas
+
+
+## Questions
+
+`;
+
+const WIKI_CONCEPT_TEMPLATE = `---
+type: concept
+source:
+category: conceptos
+tags: []
+librarian:
+  processed: true
+  status: review
+---
+
+# {{title}}
+
+## Summary
+
+
+## Key Ideas
+
+
+## Related
+
+
+## Sources
+
+`;
+
+const WIKI_SOURCE_TEMPLATE = `---
+type: source-index
+source:
+category: sources
+tags: []
+librarian:
+  processed: true
+  status: review
+---
+
+# {{title}}
+
+## Summary
+
+
+## Extracted Ideas
+
+
+## Related Concepts
+
+
+## Source
+
+`;
+
+const WIKI_SYNTHESIS_TEMPLATE = `---
+type: synthesis
+source:
+category: synthesis
+tags: []
+librarian:
+  processed: true
+  status: review
+---
+
+# {{title}}
+
+## Question
+
+
+## Synthesis
+
+
+## Evidence
+
+
+## Related
+
+`;
+
 const FILE_TEMPLATES: FileTemplate[] = [
   {
     relativePath: 'wiki/index.md',
@@ -96,6 +283,34 @@ const FILE_TEMPLATES: FileTemplate[] = [
         null,
         2,
       ) + '\n',
+  },
+  {
+    relativePath: 'templates/daily-template.md',
+    content: () => DAILY_TEMPLATE,
+  },
+  {
+    relativePath: 'templates/weekly-review.md',
+    content: () => WEEKLY_REVIEW_TEMPLATE,
+  },
+  {
+    relativePath: 'templates/source-template.md',
+    content: () => SOURCE_TEMPLATE,
+  },
+  {
+    relativePath: 'templates/raw-source-template.md',
+    content: () => RAW_SOURCE_TEMPLATE,
+  },
+  {
+    relativePath: 'templates/wiki-concept-template.md',
+    content: () => WIKI_CONCEPT_TEMPLATE,
+  },
+  {
+    relativePath: 'templates/wiki-source-template.md',
+    content: () => WIKI_SOURCE_TEMPLATE,
+  },
+  {
+    relativePath: 'templates/wiki-synthesis-template.md',
+    content: () => WIKI_SYNTHESIS_TEMPLATE,
   },
 ];
 
