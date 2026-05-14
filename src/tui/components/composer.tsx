@@ -8,7 +8,7 @@ interface ComposerProps {
   onSubmit: (value: string) => void;
 }
 
-const hints = '/search · /status · /process · /review · /graph · /orphans · /stale';
+const hints = '/help · /search · /status · /process · /review · /health · /graph · /orphans · /stale · /activity';
 
 export const Composer: React.FC<ComposerProps> = ({ onSubmit }) => {
   const { state, dispatch } = useAppState();

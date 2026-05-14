@@ -65,7 +65,8 @@ export type WorkspaceNode =
   | { type: 'proposal-inbox'; id: string; proposals: StoredProposal[]; cursor: number; createdAt: number }
   | { type: 'proposal-detail'; id: string; proposal: StoredProposal; showPreview: boolean; createdAt: number }
   | { type: 'graph-health'; id: string; summary: GraphHealthSummary; createdAt: number }
-  | { type: 'activity'; id: string; events: ActivityEvent[]; cursor: number; createdAt: number };
+  | { type: 'activity'; id: string; events: ActivityEvent[]; cursor: number; createdAt: number }
+  | { type: 'help'; id: string; createdAt: number };
 
 export interface ActivityEntry {
   id: string;
@@ -265,11 +266,10 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
 };
 
 export const createInitialState = (vaultPath: string): AppState => {
-  const chatNodeId = createNodeId();
-  const chatNode: WorkspaceNode = {
-    type: 'chat',
-    id: chatNodeId,
-    messages: [],
+  const helpNodeId = createNodeId();
+  const helpNode: WorkspaceNode = {
+    type: 'help',
+    id: helpNodeId,
     createdAt: Date.now(),
   };
 
@@ -277,9 +277,9 @@ export const createInitialState = (vaultPath: string): AppState => {
     vaultPath,
     ollamaStatus: 'checking',
     indexStatus: 'missing',
-    workspace: [chatNode],
-    activeNodeId: chatNodeId,
-    navigationHistory: [chatNodeId],
+    workspace: [helpNode],
+    activeNodeId: helpNodeId,
+    navigationHistory: [helpNodeId],
     historyIndex: 0,
     activityLog: [],
     reviews: [],

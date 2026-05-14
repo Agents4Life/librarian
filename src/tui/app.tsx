@@ -17,6 +17,7 @@ import { ProposalInboxRenderer } from './renderers/proposal-inbox-renderer.js';
 import { ProposalDetailRenderer } from './renderers/proposal-detail-renderer.js';
 import { GraphHealthRenderer } from './renderers/graph-health-renderer.js';
 import { ActivityRenderer } from './renderers/activity-renderer.js';
+import { HelpRenderer } from './renderers/help-renderer.js';
 import { Header } from './components/header.js';
 import { Sidebar } from './components/sidebar.js';
 import { Composer } from './components/composer.js';
@@ -47,6 +48,7 @@ registerRenderer('proposal-inbox', ProposalInboxRenderer);
 registerRenderer('proposal-detail', ProposalDetailRenderer);
 registerRenderer('graph-health', GraphHealthRenderer);
 registerRenderer('activity', ActivityRenderer);
+registerRenderer('help', HelpRenderer);
 
 const refreshAllStatusInbox = async (service: ReviewService, inboxNode: WorkspaceNode | undefined, dispatch: React.Dispatch<import('./state.js').AppAction>) => {
   if (!inboxNode || inboxNode.type !== 'proposal-inbox') return;
@@ -309,6 +311,16 @@ export const App: React.FC = () => {
           createdAt: Date.now(),
         };
         dispatch({ type: 'ADD_NODE', node });
+        return;
+      }
+
+      if (parsed.command.slash === '/help') {
+        const helpNode: WorkspaceNode = {
+          type: 'help',
+          id: crypto.randomUUID(),
+          createdAt: Date.now(),
+        };
+        dispatch({ type: 'ADD_NODE', node: helpNode });
         return;
       }
 
