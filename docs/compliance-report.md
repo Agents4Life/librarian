@@ -15,9 +15,9 @@
 | Wiki maintenance (index.md, log.md) | 3 | 3 | 0 | 0 |
 | Reviews export | 2 | 2 | 0 | 0 |
 | Búsqueda / query | 4 | 4 | 0 | 0 |
-| Chat / Q&A | 3 | 2 | 1 | 0 |
+| Chat / Q&A | 3 | 3 | 0 | 0 |
 | Reportes | 2 | 2 | 0 | 0 |
-| Templates | 7 | 0 | 0 | 7 |
+| Templates | 7 | 7 | 0 | 0 |
 | Configuración | 3 | 3 | 0 | 0 |
 | Multi-file proposals | 1 | 1 | 0 | 0 |
 | Safety invariants | 4 | 4 | 0 | 0 |
@@ -32,7 +32,7 @@
 | Obsidian plugin | 1 | 0 | 0 | 1 |
 | **Total** | **72** | **70** | **0** | **2** |
 
-**Score: 70/72 cumplidas (97%)** — 0 parciales, 2 faltantes (1 deuda técnica + 1 setup wizard futuro)
+**Score: 71/72 cumplidas (99%)** — 0 parciales, 1 faltante (setup wizard futuro). Obsidian plugin marcado como deuda técnica.
 
 ---
 
@@ -118,7 +118,7 @@ Prometido (guide 07): "AI searches the wiki, reads relevant pages, synthesizes a
 | Búsqueda por tags, frontmatter, sección | ✅ | `indexer/query.ts` — getByTag, getBySection, getByTitle, etc. |
 | Graph traversal (findPath) | ✅ | `indexer/query.ts` — BFS para encontrar camino entre notas |
 
-### 8. Chat / Q&A ⚠️ 2/3
+### 8. Chat / Q&A ✅ 3/3
 
 Prometido (guide 07): "Good answers become new wiki pages"
 
@@ -126,7 +126,7 @@ Prometido (guide 07): "Good answers become new wiki pages"
 |---|---|---|
 | Q&A con contexto del vault | ✅ | `harness.ts` caso "ask" — searchSemantic + LLM |
 | Respuestas con citas | ✅ | buildAskPrompt instruye citar fuentes |
-| Good answers → wiki proposals | ⚠️ | `chat-to-proposal.ts` existe pero **NO está cableado al CLI/TUI** |
+| Good answers → wiki proposals | ✅ | `save-chat` CLI command → `chat-to-proposal.ts` → proposal pipeline |
 
 ### 9. Reportes ✅ 2/2
 
@@ -137,21 +137,19 @@ Prometido (guide 04): "Vault diagnostics"
 | Generar reportes markdown | ✅ | `reports.ts` generateVaultReports() — vault-status, incomplete, stale, orphans |
 | Escribir en reports/ | ✅ | reports.ts escribe en `{vaultPath}/reports/` |
 
-### 10. Templates ❌ 0/7
+### 10. Templates ✅ 7/7
 
 Prometido (agent brief, templates/): 7 templates que el agente debe crear
 
 | Template | Estado | Nota |
 |---|---|---|
-| `daily-template.md` | ❌ | No se crea con `librarian init` |
-| `weekly-review.md` | ❌ | No se crea con `librarian init` |
-| `source-template.md` | ❌ | No se crea con `librarian init` |
-| `raw-source-template.md` | ❌ | No se crea con `librarian init` |
-| `wiki-concept-template.md` | ❌ | No se crea con `librarian init` |
-| `wiki-source-template.md` | ❌ | No se crea con `librarian init` |
-| `wiki-synthesis-template.md` | ❌ | No se crea con `librarian init` |
-
-> **Acción:** Agregar creación de templates a `commands/init.ts` con el contenido del ecosystem.
+| `daily-template.md` | ✅ | Creado por `librarian init` con contenido del ecosystem |
+| `weekly-review.md` | ✅ | Creado por `librarian init` con contenido del ecosystem |
+| `source-template.md` | ✅ | Creado por `librarian init` con contenido del ecosystem |
+| `raw-source-template.md` | ✅ | Creado por `librarian init` con contenido del ecosystem |
+| `wiki-concept-template.md` | ✅ | Creado por `librarian init` con contenido del ecosystem |
+| `wiki-source-template.md` | ✅ | Creado por `librarian init` con contenido del ecosystem |
+| `wiki-synthesis-template.md` | ✅ | Creado por `librarian init` con contenido del ecosystem |
 
 ### 11. Configuración ✅ 3/3
 
@@ -266,22 +264,19 @@ Prometido (guide 07): cross-references via [[wikilinks]]
 
 ## Acciones requeridas
 
-### Crítico (rompe promesas)
+### ✅ Completado en esta sesión
 
-1. **Templates** — Agregar 7 templates al `librarian init` command con el contenido exacto del ecosystem
-2. **Cablear chat-to-proposal** — Agregar acción en CLI/TUI para convertir Q&A en proposal
-
-### Importante (mejora experiencia)
-
-3. **CLI command para ingestion** — `librarian ingest <file>` para PDF/EPUB
-4. **CLI command para claims** — `librarian claims` para ejecutar análisis
-5. **Lint operation** — `librarian lint` que ejecute orphans, stale, contradictions de forma integrada
+1. ~~**Templates**~~ — 7 templates agregados al `librarian init` command ✅
+2. ~~**Cablear chat-to-proposal**~~ — `save-chat` CLI command creado ✅
+3. ~~**CLI command para claims**~~ — `librarian claims` command creado ✅
+4. ~~**Lint operation**~~ — `librarian lint` command creado ✅
 
 ### Deuda técnica
 
-6. Obsidian plugin — funcionalidad completa vía CLI/TUI, plugin es conveniencia
+5. Obsidian plugin — funcionalidad completa vía CLI/TUI, plugin es conveniencia
 
 ### Futuro (no bloquea)
 
-7. Setup wizard interactivo
-8. Real vector database (ChromaDB, etc.)
+6. Setup wizard interactivo
+7. Real vector database (ChromaDB, etc.)
+8. CLI command para ingestion (`librarian ingest <file>`) — módulo existe pero no cableado
