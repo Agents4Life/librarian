@@ -56,7 +56,9 @@ const checkContradiction = async (claimA: Claim, claimB: Claim): Promise<Contrad
       suggested_resolution: string;
     };
 
-    if (!parsed.is_contradiction) return null;
+    const isContradiction = parsed.is_contradiction === true
+      || parsed.is_contradiction === 'true';
+    if (!isContradiction) return null;
 
     const validSeverities: ContradictionSeverity[] = ['critical', 'warning', 'minor'];
 
@@ -81,18 +83,19 @@ export const detectContradictions = async (
   const contradictions: Contradiction[] = [];
 
   // Find candidate pairs
+  const maxPairs = 50;
   const pairs: Array<[Claim, Claim]> = [];
+  outer:
   for (let i = 0; i < claims.length; i++) {
     for (let j = i + 1; j < claims.length; j++) {
       if (areCandidatesForContradiction(claims[i], claims[j])) {
         pairs.push([claims[i], claims[j]]);
+        if (pairs.length >= maxPairs) break outer;
       }
     }
   }
 
-  // Check candidate pairs (limit to avoid explosion)
-  const maxPairs = 50;
-  const toCheck = pairs.slice(0, maxPairs);
+  const toCheck = pairs;
 
   for (let i = 0; i < toCheck.length; i++) {
     const [a, b] = toCheck[i];

@@ -58,7 +58,7 @@ export const extractClaimsFromPage = async (
         id: `claim-${pagePath.replace(/[^a-z0-9]/gi, '-')}-${idx}`,
         text: item.text,
         sourcePath: pagePath,
-        confidence: Math.min(1, Math.max(0, item.confidence ?? 0.7)),
+        confidence: Math.min(1, Math.max(0, Number.isFinite(item.confidence) ? item.confidence as number : 0.7)),
         type: validTypes.includes(item.type as ClaimType) ? (item.type as ClaimType) : 'factual',
       }));
   } catch {

@@ -238,10 +238,11 @@ export const createQueryApi = (index: NoteIndex) => {
       });
 
       if (results.length > 0) {
-        return results.map((r) => ({
+        const filteredResults = results.map((r) => ({
           note: getByPath(r.path)!,
           score: r.score,
         })).filter((r) => r.note !== undefined);
+        if (filteredResults.length > 0) return filteredResults;
       }
 
       return search(query, options);

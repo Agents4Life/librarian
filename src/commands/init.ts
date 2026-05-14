@@ -359,8 +359,12 @@ export const initVault = async (vaultPath?: string): Promise<void> => {
     try {
       await mkdir(fullPath, { recursive: true });
       created.push(dir + '/');
-    } catch {
-      skipped.push(dir + '/');
+    } catch (err: any) {
+      if (err?.code === 'EEXIST') {
+        skipped.push(dir + '/');
+      } else {
+        throw err;
+      }
     }
   }
 
