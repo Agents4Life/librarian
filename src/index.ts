@@ -39,6 +39,10 @@ const operationalCommands: Record<string, (args: string[]) => Promise<void>> = {
     if (!id) { console.error("Usage: librarian apply <id>"); process.exit(1); }
     await applyProposal(id);
   },
+  init: async () => {
+    const { initVault } = await import('./commands/init.js');
+    await initVault();
+  },
   retry: async (args) => {
     const id = args[0];
     if (!id) { console.error("Usage: librarian retry <id>"); process.exit(1); }

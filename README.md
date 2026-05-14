@@ -78,7 +78,6 @@ Reglas base:
 ## Límites Actuales
 
 - Setup wizard pulido.
-- Comando `librarian init` para crear toda la capa opcional de Librarian dentro del vault.
 - Plugin de Obsidian.
 - Base vectorial real en la implementación actual.
 - Provider real de embeddings; la búsqueda semántica actual es heurística/Jaccard.
@@ -199,6 +198,12 @@ librarian "pregunta sobre Clean Architecture"
 ```
 
 La CLI devuelve JSON.
+
+### Inicialización Del Vault
+
+```bash
+librarian init                  # Scaffold Librarian layer in vault (idempotent)
+```
 
 ### Workflow De Propuestas
 
