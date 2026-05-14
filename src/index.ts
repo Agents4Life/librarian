@@ -43,6 +43,16 @@ const operationalCommands: Record<string, (args: string[]) => Promise<void>> = {
     const { initVault } = await import('./commands/init.js');
     await initVault();
   },
+  'save-chat': async (args) => {
+    const { saveChat } = await import('./commands/save-chat.js');
+    const question = args.find((a) => a.startsWith('--question='))?.split('=').slice(1).join('=');
+    const answer = args.find((a) => a.startsWith('--answer='))?.split('=').slice(1).join('=');
+    if (!question || !answer) {
+      console.error('Usage: librarian save-chat --question="Your question" --answer="The answer"');
+      process.exit(1);
+    }
+    await saveChat({ question, answer });
+  },
   retry: async (args) => {
     const id = args[0];
     if (!id) { console.error("Usage: librarian retry <id>"); process.exit(1); }
