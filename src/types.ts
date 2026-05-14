@@ -24,6 +24,12 @@ export type DuplicateReason =
   | 'semantic_duplicate' // GLM says it's the same concept
   | 'none';              // no duplicate found
 
+export type ProposalTarget = {
+  path: string;           // relative path within vault, e.g. "wiki/conceptos/clean-architecture.md"
+  content: string;        // the content to write
+  action: 'create' | 'update';
+};
+
 export interface CurationProposal {
   diff_id: string;
   source: string;
@@ -37,6 +43,9 @@ export interface CurationProposal {
   suggestedLinks: string[];
   duplicate: DuplicateReason;
   duplicateOf?: string; // path to existing wiki page
+
+  // NEW: additional targets beyond the main one
+  additionalTargets?: ProposalTarget[];
 }
 
 export interface LibrarianConfig {

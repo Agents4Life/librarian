@@ -7,6 +7,8 @@ import { generateOperationId } from "../proposals/operation-id.js";
 import { loadTransaction } from "./transaction-store.js";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import { updateWikiIndex, appendWikiLog } from "../wiki-maintenance.js";
+import { exportProposalToReview, removeReviewExport } from "./export-review.js";
 
 export class ReviewService {
   constructor(
@@ -37,7 +39,13 @@ export class ReviewService {
       decision: "approved",
     };
 
-    return this.store.save(proposal);
+    const saved = await this.store.save(proposal);
+
+    try {
+      await exportProposalToReview(this.vaultPath, proposal);
+    } catch { /* non-critical */ }
+
+    return saved;
   }
 
   async reject(id: string, reason?: string): Promise<StoredProposal> {
@@ -54,7 +62,13 @@ export class ReviewService {
       reason,
     };
 
-    return this.store.save(proposal);
+    const saved = await this.store.save(proposal);
+
+    try {
+      await removeReviewExport(this.vaultPath, proposal.id);
+    } catch { /* non-critical */ }
+
+    return saved;
   }
 
   async apply(id: string): Promise<StoredProposal> {
@@ -80,6 +94,23 @@ export class ReviewService {
       proposal.appliedAt = new Date().toISOString();
       proposal.attempts = attempt;
       this.recordTransition(proposal, result.operationId, "applying", "applied", attempt, "apply-success");
+
+      // Post-apply: update wiki index and log
+      try {
+        await updateWikiIndex({ vaultPath: this.vaultPath, queryApi: null as any });
+      } catch { /* non-critical */ }
+
+      try {
+        await appendWikiLog(this.vaultPath, {
+          action: "applied",
+          source: proposal.proposal.source,
+          target: proposal.proposal.target,
+        });
+      } catch { /* non-critical */ }
+
+      try {
+        await removeReviewExport(this.vaultPath, proposal.id);
+      } catch { /* non-critical */ }
     } else {
       const finalStatus = result.rollbackError ? "failed" : "rolled_back";
       proposal.status = finalStatus;

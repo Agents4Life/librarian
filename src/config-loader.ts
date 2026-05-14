@@ -109,6 +109,15 @@ const parseYamlWithSubSections = (content: string): RawYamlConfig => {
 };
 
 /**
+ * Load config from the vault-local config file at `vaultPath/configs/librarian.yaml`.
+ * Returns null if file doesn't exist or can't be parsed.
+ */
+export const loadVaultLocalConfig = (vaultPath: string): RawYamlConfig | null => {
+  const configPath = join(vaultPath, 'configs', 'librarian.yaml');
+  return loadYamlConfig(configPath);
+};
+
+/**
  * Load config from a YAML file. Returns null if file doesn't exist or can't be parsed.
  * Synchronous — called at module init time.
  */

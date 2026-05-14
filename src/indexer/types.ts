@@ -35,6 +35,7 @@ export interface Note {
   createdAt: string;
   updatedAt: string;
   fileSize: number;
+  embedding?: number[]; // embedding vector, optional
 }
 
 export interface NoteIndex {
