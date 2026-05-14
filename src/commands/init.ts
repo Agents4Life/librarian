@@ -4,12 +4,21 @@ import { join } from 'node:path';
 import { defaultConfig } from '../config.js';
 
 const DIRECTORIES: string[] = [
+  // raw/ — everything the user writes (PARA + daily + inbox)
   'raw',
+  'raw/1-proyectos',
+  'raw/2-areas',
+  'raw/3-recursos',
+  'raw/4-archivo',
+  'raw/daily',
+  'raw/inbox',
+  // wiki/ — curated and maintained by Librarian
   'wiki',
   'wiki/conceptos',
   'wiki/entidades',
   'wiki/sources',
   'wiki/synthesis',
+  // infrastructure
   'reports',
   'reports/chats',
   'reports/conflicts',
@@ -258,7 +267,31 @@ librarian:
 
 `;
 
+const HOME_NOTE = `# 🏠 Home
+
+## Quick Links
+
+- [[wiki/index|Wiki Index]]
+- [[wiki/log|Wiki Log]]
+
+## Active Projects
+
+- 
+
+## Today
+
+- 
+
+---
+
+*Powered by [Librarian](https://github.com/Agents4Life/librarian)*
+`;
+
 const FILE_TEMPLATES: FileTemplate[] = [
+  {
+    relativePath: 'home.md',
+    content: () => HOME_NOTE,
+  },
   {
     relativePath: 'wiki/index.md',
     content: () => WIKI_INDEX,
@@ -326,8 +359,12 @@ export const initVault = async (vaultPath?: string): Promise<void> => {
     try {
       await mkdir(fullPath, { recursive: true });
       created.push(dir + '/');
-    } catch {
-      skipped.push(dir + '/');
+    } catch (err: any) {
+      if (err?.code === 'EEXIST') {
+        skipped.push(dir + '/');
+      } else {
+        throw err;
+      }
     }
   }
 

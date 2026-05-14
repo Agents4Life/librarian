@@ -9,17 +9,17 @@ export const exportProposalToReview = async (
   const reviewsDir = join(vaultPath, 'reviews');
   const filePath = join(reviewsDir, `${proposal.id}.md`);
 
-  const tags = proposal.proposal.tags.join(', ');
+  const tags = Array.isArray(proposal.proposal.tags) ? proposal.proposal.tags.join(', ') : '';
 
   const content = `---
 librarian:
   type: review
   proposal_id: "${proposal.id}"
-  status: ${proposal.status}
-  category: ${proposal.proposal.category}
-  source: ${proposal.proposal.source}
-  target: ${proposal.proposal.target}
-  created_at: ${proposal.createdAt}
+  status: "${proposal.status}"
+  category: "${proposal.proposal.category}"
+  source: "${proposal.proposal.source}"
+  target: "${proposal.proposal.target}"
+  created_at: "${proposal.createdAt}"
 ---
 
 # Proposal: ${proposal.proposal.target.split('/').pop()}

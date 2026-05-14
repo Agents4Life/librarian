@@ -74,19 +74,22 @@ Reglas base:
 - Flujo de revisión con `preview`, `approve`, `reject`, `apply`, `retry` y `reset`.
 - Reportes de estado y logs de chat persistidos bajo `reports/`.
 - Configuración local-first compatible con OpenAI, apuntando a Ollama por defecto.
+- `librarian init` scaffolding idempotente con templates del Second Brain Ecosystem.
+- Post-apply hooks: `wiki/index.md` y `wiki/log.md` se actualizan automáticamente.
+- Exportación automática de propuestas aprobadas a `reviews/` como Markdown legible en Obsidian.
+- Configuración vault-local desde `vault/configs/librarian.yaml`.
+- Propuestas multi-file (múltiples targets atómicos en una sola propuesta).
+- `save-chat` para convertir respuestas Q&A en propuestas wiki revisables.
+- Provider de embeddings con fallback a Jaccard heuristic.
+- `librarian lint` para health check integral del vault.
+- `librarian claims` para extracción de claims y detección de contradicciones.
 
 ## Límites Actuales
 
-- Setup wizard pulido.
-- Plugin de Obsidian.
-- Base vectorial real en la implementación actual.
-- Provider real de embeddings; la búsqueda semántica actual es heurística/Jaccard.
-- Ingesta PDF/EPUB.
-- `reviews/` está documentado como superficie humana de revisión/export, pero la exportación de propuestas ahí todavía no está integrada por completo.
-- Las utilidades para mantener `wiki/index.md` y `wiki/log.md` existen, pero todavía no están integradas automáticamente después de apply.
-- Las propuestas son single-target; el mantenimiento multi-file de la wiki todavía no está implementado.
-- Las buenas respuestas de chat todavía no pueden convertirse en propuestas wiki revisables.
-- La detección de contradicciones y el tracking explícito de claims todavía no están implementados.
+- Setup wizard interactivo (`librarian init` es scaffolding básico).
+- Plugin de Obsidian (deuda técnica — funcionalidad completa vía CLI/TUI).
+- Base vectorial real (ChromaDB, etc.) en la implementación actual; los embeddings usan un memory store en proceso.
+- Ingesta PDF/EPUB está implementada pero no cableada como comando CLI.
 - Algunas rutas de escritura siguen siendo experimentales.
 - El uso de modelos cloud es opt-in por variables de entorno, pero la privacidad depende del proveedor elegido.
 
@@ -145,7 +148,7 @@ cp config.example.yaml config.yaml
 
 `config.yaml` está ignorado por Git porque puede contener rutas locales o configuración de proveedores.
 
-`vault/configs/librarian.yaml` forma parte del modelo de vault previsto por Second Brain Ecosystem, pero todavía no es la ruta principal de configuración. El soporte para configuración local al vault está planificado para M9.
+`vault/configs/librarian.yaml` forma parte del modelo de vault previsto por Second Brain Ecosystem. Librarian soporta configuración vault-local con prioridad: variables de entorno → `vault/configs/librarian.yaml` → `config.yaml` en CWD → defaults.
 
 ## Proveedores De Modelo
 
@@ -202,10 +205,33 @@ La CLI devuelve JSON.
 ### Inicialización Del Vault
 
 ```bash
-librarian init                  # Scaffold Librarian layer in vault (idempotent)
+librarian init                  # Scaffold Librarian layer en vault (idempotente, incluye templates)
 ```
 
-### Workflow De Propuestas
+### Health Check Y Claims
+
+```bash
+librarian lint                  # Health check integral (incomplete, stale, orphans, wiki files, claims)
+librarian lint --skip-claims    # Health check rápido sin análisis de claims
+librarian claims                # Extraer claims y detectar contradicciones en el wiki
+librarian claims --section=conceptos  # Analizar solo una sección del wiki
+librarian claims --output=json  # Output en JSON en vez de markdown
+```
+
+### Guardar Chat Como Propuesta
+
+```bash
+librarian save-chat --question="¿Qué es Clean Architecture?" --answer="Es un patrón..."
+```
+
+Convierte un par Q&A en una propuesta wiki revisable usando el LLM para clasificarla.
+
+### Mantenimiento Del Índice
+
+```bash
+librarian index status    # Mostrar frescura del índice y metadata de caches
+librarian index rebuild   # Reconstruir el índice persistido del vault
+```
 
 Librarian usa un flujo proposal-first para todas las escrituras al vault:
 
@@ -223,11 +249,6 @@ librarian reset <id>                     # Resetear una propuesta fallida o roll
 
 Estados de propuesta: `pending → approved → applying → applied`, `pending → rejected`. En caso de error: `applying → failed` (recuperable vía `retry`) o `applying → rolled_back` (recuperable vía `reset`).
 
-### Mantenimiento Del Índice
-
-```bash
-librarian index status    # Mostrar frescura del índice y metadata de caches
-librarian index rebuild   # Reconstruir el índice persistido del vault
 ```
 
 ### Procesamiento Batch De Raw

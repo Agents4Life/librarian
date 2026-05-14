@@ -46,6 +46,11 @@ export const createCommands = (dispatch: (action: unknown) => void, runLibrarian
     description: 'Session activity log',
     handler: () => { dispatch({ type: 'LOAD_ACTIVITY' }); },
   },
+  {
+    slash: '/help',
+    description: 'Show help and usage guide',
+    handler: () => { dispatch({ type: 'LOAD_HELP' }); },
+  },
 ];
 
 export const parseComposerInput = (input: string, commands: SlashCommand[]): { isCommand: boolean; command?: SlashCommand; args: string } => {

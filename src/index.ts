@@ -77,6 +77,58 @@ const operationalCommands: Record<string, (args: string[]) => Promise<void>> = {
       process.exit(1);
     }
   },
+  lint: async (args) => {
+    const { lintVault } = await import('./commands/lint.js');
+    const vaultPath = args.find((a) => !a.startsWith('--')) ?? '.';
+    const skipClaims = args.includes('--skip-claims');
+    const result = await lintVault(vaultPath, { skipClaims });
+
+    console.log("\n🔍 Librarian Lint Report");
+    console.log("=".repeat(40));
+
+    const c = result.checks;
+    console.log(`  Incomplete notes: ${c.incomplete.count === 0 ? '✅' : '⚠️'} ${c.incomplete.count}`);
+    c.incomplete.notes.slice(0, 5).forEach((n) => console.log(`    - ${n}`));
+
+    console.log(`  Stale notes:      ${c.stale.count === 0 ? '✅' : '⚠️'} ${c.stale.count}`);
+    c.stale.notes.slice(0, 5).forEach((n) => console.log(`    - ${n}`));
+
+    console.log(`  Orphan notes:     ${c.orphans.count === 0 ? '✅' : '⚠️'} ${c.orphans.count}`);
+    c.orphans.notes.slice(0, 5).forEach((n) => console.log(`    - ${n}`));
+
+    console.log(`  Wiki index:       ${c.wikiIndex.ok ? '✅' : '❌'} ${c.wikiIndex.message}`);
+    console.log(`  Wiki log:         ${c.wikiLog.ok ? '✅' : '❌'} ${c.wikiLog.message}`);
+    console.log(`  Claims:           ${c.claims.ok ? '✅' : '❌'} ${c.claims.contradictions} contradictions (${c.claims.critical} critical)`);
+
+    console.log("=".repeat(40));
+    console.log(result.healthy ? "✅ Vault is healthy!" : "⚠️ Issues found. Check reports/ for details.");
+    console.log();
+
+    if (result.reports.length > 0) {
+      console.log("Reports generated:");
+      result.reports.forEach((r) => console.log(`  - ${r}`));
+    }
+
+    process.exit(result.healthy ? 0 : 1);
+  },
+  claims: async (args) => {
+    const { runClaims } = await import('./claims/cli.js');
+    const vaultPath = args.find((a) => !a.startsWith('--')) ?? '.';
+    const section = args.find((a) => a.startsWith('--section='))?.split('=').slice(1).join('=');
+    const output = (args.find((a) => a.startsWith('--output='))?.split('=')[1] ?? 'markdown') as 'json' | 'markdown';
+
+    const result = await runClaims({ vaultPath, output, section });
+
+    if (output === 'json') {
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      console.log(`\n📊 Claims Analysis`);
+      console.log(`   Pages analyzed: ${result.stats.pagesAnalyzed}`);
+      console.log(`   Claims extracted: ${result.stats.claimsExtracted}`);
+      console.log(`   Contradictions: ${result.stats.contradictionsFound} (${result.stats.criticalCount} critical)`);
+      console.log(`   Report saved to reports/claims-analysis.md\n`);
+    }
+  },
 };
 
 const command = argv[0];

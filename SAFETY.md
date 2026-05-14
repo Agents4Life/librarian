@@ -70,7 +70,7 @@ Do not use a cloud model with notes you are not willing to send to that provider
 - Misconfigured vault paths.
 - Provider-specific privacy or retention policies.
 - `reviews/`, `memory/`, and `configs/` are part of the intended vault model, but some behavior is still roadmap or only partially integrated.
-- `wiki/index.md` and `wiki/log.md` maintenance utilities exist, but automatic post-apply maintenance is not yet fully integrated.
+- `wiki/index.md` and `wiki/log.md` maintenance is performed automatically via `updateWikiIndex` and `appendWikiLog` invoked by `review-service.ts`.
 - Older versions of `scripts/process-raw.js` modified frontmatter in `raw/`. Current versions use an external ledger. If you previously ran batch processing, review your `raw/` notes for `librarian.processed` fields that were added by the old script.
 
 ## Safer Operating Practices

@@ -97,7 +97,7 @@ export class ReviewService {
 
       // Post-apply: update wiki index and log
       try {
-        await updateWikiIndex({ vaultPath: this.vaultPath, queryApi: null as any });
+        await updateWikiIndex({ vaultPath: this.vaultPath });
       } catch { /* non-critical */ }
 
       try {

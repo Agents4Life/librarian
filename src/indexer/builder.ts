@@ -5,6 +5,8 @@ import type { Note, NoteIndex, SectionMap } from "./types.js";
 import { parseNote } from "./parser.js";
 import { isEmbeddingAvailable, getEmbeddingProvider, getEmbeddingStore } from "../embeddings/index.js";
 
+const INDEX_ROOTS = ["raw", "wiki"];
+
 const walkMarkdownFiles = async (directory: string): Promise<string[]> => {
   const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
 
@@ -21,6 +23,17 @@ const walkMarkdownFiles = async (directory: string): Promise<string[]> => {
   );
 
   return nested.flat();
+};
+
+/** Walk only the content directories (raw/ + wiki/) under the vault root */
+const walkContentDirs = async (vaultPath: string): Promise<string[]> => {
+  const results: string[] = [];
+  for (const dir of INDEX_ROOTS) {
+    const full = path.join(vaultPath, dir);
+    const files = await walkMarkdownFiles(full);
+    results.push(...files);
+  }
+  return results;
 };
 
 const resolveAmbiguousTitle = (
@@ -84,7 +97,7 @@ export const buildIndex = async (
   vaultPath: string,
   sectionMap?: SectionMap,
 ): Promise<NoteIndex> => {
-  const files = await walkMarkdownFiles(vaultPath);
+  const files = await walkContentDirs(vaultPath);
   const notes: Record<string, Note> = {};
 
   for (const file of files) {

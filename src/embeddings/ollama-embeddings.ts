@@ -21,10 +21,16 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
     const response = await fetch(`${this.baseUrl}/api/embeddings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(30_000),
       body: JSON.stringify({
         model: this.model,
-        prompt: text.slice(0, 8000), // Truncate to avoid token limits
+        prompt: text.slice(0, 8000),
       }),
+    }).catch(err => {
+      if (err instanceof DOMException && err.name === 'TimeoutError') {
+        throw new Error('Ollama embed request timed out');
+      }
+      throw err;
     });
     
     if (!response.ok) {
@@ -32,6 +38,12 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
     }
     
     const data = await response.json() as { embedding: number[] };
+    if (!Array.isArray(data.embedding) || data.embedding.length === 0) {
+      throw new Error('Ollama embedding response missing or empty embedding array');
+    }
+    if (!data.embedding.every(Number.isFinite)) {
+      throw new Error('Ollama embedding response contains non-finite values');
+    }
     return { values: data.embedding, dim: data.embedding.length };
   }
   
@@ -58,7 +70,12 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
       if (!response.ok) return false;
       
       const data = await response.json() as { models: Array<{ name: string }> };
-      return data.models.some(m => m.name.includes(this.model) || m.name.includes(this.model.split(':')[0]));
+      const full = this.model.toLowerCase();
+      const base = this.model.split(':')[0].toLowerCase();
+      return data.models.some(m => {
+        const n = m.name.toLowerCase();
+        return n === full || n === base;
+      });
     } catch {
       return false;
     }

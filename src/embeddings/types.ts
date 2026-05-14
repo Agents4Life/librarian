@@ -47,6 +47,9 @@ export interface EmbeddingStore {
   /** Get number of stored embeddings */
   size(): number;
   
+  /** List all stored paths */
+  keys(): string[];
+
   /** Clear all stored embeddings */
   clear(): void;
 }

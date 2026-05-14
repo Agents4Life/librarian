@@ -42,7 +42,7 @@ export const saveChat = async (args: {
     JSON.stringify(
       {
         ok: true,
-        proposalId: proposal.diff_id,
+        proposalId: stored.id,
         target: proposal.target,
         category: proposal.category,
         title: proposal.summary || 'Untitled',

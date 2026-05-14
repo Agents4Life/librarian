@@ -1,6 +1,5 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { writeFileSync, mkdirSync } from 'node:fs';
 import type { IngestionResult, IngestionOptions } from './types.js';
 
 /**
@@ -66,9 +65,11 @@ export const ingestEpub = async (
       };
     }
     
-    // Extract text content from the EPUB
-    // EPUB content is in XHTML files inside the ZIP
-    // For a minimal extraction, find HTML-like content in the raw bytes
+    // TODO: This decodes the entire ZIP buffer as UTF-8, which is technically incorrect.
+    // A proper EPUB parser (e.g., jszip or yauzl) should be used to parse the ZIP directory
+    // and extract per-file XHTML/HTML content. The current approach works for uncompressed
+    // EPUB entries because the HTML tags remain visible in the raw byte stream, but will
+    // fail for compressed entries.
     const content = buffer.toString('utf8');
     
     // Find all text content between HTML tags
@@ -130,8 +131,8 @@ export const ingestEpub = async (
       truncatedText,
     ].join('\n');
     
-    mkdirSync(join(vaultPath, rawDir), { recursive: true });
-    writeFileSync(targetAbs, mdContent, 'utf8');
+    await mkdir(join(vaultPath, rawDir), { recursive: true });
+    await writeFile(targetAbs, mdContent, 'utf8');
     
     return {
       success: true,
