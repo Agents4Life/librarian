@@ -40,9 +40,13 @@ export const ensureWikiStructure = async (basePath: string) => {
   return { created };
 };
 
-export const updateWikiIndex = async (ctx: ToolContext) => {
+export const updateWikiIndex = async (ctx: ToolContext & { queryApi?: ToolContext["queryApi"] }) => {
   const { vaultPath, queryApi } = ctx;
   await ensureWikiStructure(vaultPath);
+
+  if (!queryApi) {
+    return { file: path.relative(vaultPath, path.join(vaultPath, "wiki", "index.md")) };
+  }
 
   const wikiNotes = queryApi.getBySection("wiki");
 
