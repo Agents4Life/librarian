@@ -1,10 +1,10 @@
-import React, { useCallback } from "react";
-import { Box, Text } from "ink";
-import { useInput } from "ink";
-import { theme } from "../theme.js";
-import { useAppState } from "../state.js";
-import type { RendererProps } from "./registry.js";
-import { ProposalPreview } from "../components/proposal-preview.js";
+import React, { useCallback } from 'react';
+import { Box, Text } from 'ink';
+import { useInput } from 'ink';
+import { theme } from '../theme.js';
+import { useAppState } from '../state.js';
+import type { RendererProps } from './registry.js';
+import { ProposalPreview } from '../components/proposal-preview.js';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: theme.warning,
@@ -18,28 +18,47 @@ const STATUS_COLORS: Record<string, string> = {
 
 const statusColor = (status: string) => STATUS_COLORS[status] ?? theme.primary;
 
+interface ProposalDetailState {
+  confirming: null | 'approve' | 'reject';
+}
+
 export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction }) => {
   const { state, dispatch } = useAppState();
+  const [detailState, setDetailState] = React.useState<ProposalDetailState>({ confirming: null });
 
-  useInput(useCallback((input, key) => {
+  useInput(useCallback((input: string, key: any) => {
     if (node.type !== "proposal-detail") return;
     if (state.focusedPane === "composer") return;
     const p = node.proposal;
 
+    // If we're in confirmation mode
+    if (detailState.confirming) {
+      if (input === "y") {
+        // Execute confirmed action
+        onAction(`${detailState.confirming}:${p.id}`);
+        setDetailState({ confirming: null });
+      } else if (input === "n" || key.escape) {
+        // Cancel confirmation
+        setDetailState({ confirming: null });
+      }
+      return;
+    }
+
+    // Normal mode
     if (input === "a") {
-      onAction(`approve:${p.id}`);
+      setDetailState({ confirming: 'approve' });
     } else if (input === "r") {
-      onAction(`reject:${p.id}`);
+      setDetailState({ confirming: 'reject' });
     } else if (input === "t" && (p.status === "failed" || p.status === "rolled_back")) {
       onAction(`retry:${p.id}`);
     } else if (input === "x" && (p.status === "failed" || p.status === "rolled_back")) {
       onAction(`reset:${p.id}`);
     } else if (input === "p") {
       dispatch({ type: "TOGGLE_PREVIEW", nodeId: node.id });
-    } else if (input === "q" || key.escape) {
+    } else if (key.escape) {
       onAction("back-to-inbox");
     }
-  }, [node, state.focusedPane, dispatch, onAction]));
+  }, [node, state.focusedPane, dispatch, onAction, detailState.confirming]));
 
   if (node.type !== "proposal-detail") return null;
 
@@ -50,6 +69,28 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
     <Box flexDirection="column" paddingX={1}>
       <Text bold color={theme.primary}>Proposal Detail</Text>
       <Text> </Text>
+
+      {/* Confirmation overlay */}
+      {detailState.confirming && (
+        <Box flexDirection="column" borderStyle="double" padding={1} marginBottom={1} borderColor={theme.warning}>
+          <Text bold color={theme.warning}>
+            ¿Estás seguro que querés {detailState.confirming === 'approve' ? 'APPROVAR' : 'RECHAZAR'} esta propuesta?
+          </Text>
+          <Text> </Text>
+          <Text dimColor>
+            {p.sourcePath} → {p.proposal.target}
+          </Text>
+          <Text> </Text>
+          <Box gap={2}>
+            <Text color={theme.success} bold>y</Text>
+            <Text>Sí, {detailState.confirming === 'approve' ? 'aprobar' : 'rechazar'}</Text>
+          </Box>
+          <Box gap={2}>
+            <Text color={theme.error} bold>n</Text>
+            <Text>Cancelar</Text>
+          </Box>
+        </Box>
+      )}
 
       <Box flexDirection="row" gap={2}>
         <Text bold>Status:</Text>
@@ -147,7 +188,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
 
       <Box marginTop={1}>
         <Text dimColor>
-          a approve{" · "}r reject{canRetry ? " · t retry · x reset" : ""}{" · "}p {node.showPreview ? "hide" : "show"} preview{" · "}q back
+          a approve{" · "}r reject{canRetry ? " · t retry · x reset" : ""}{" · "}p {node.showPreview ? "hide" : "show"} preview{" · "}Esc back
         </Text>
       </Box>
     </Box>

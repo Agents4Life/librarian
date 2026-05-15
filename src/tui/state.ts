@@ -146,10 +146,25 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
 
     case 'SET_ACTIVE_NODE': {
       const idx = state.navigationHistory.indexOf(action.id);
+      const node = state.workspace.find((n) => n.id === action.id);
+      if (!node) return state;
+      
+      // If node exists but isn't in history, add it
+      if (idx === -1) {
+        const newHistory = [...state.navigationHistory.slice(0, state.historyIndex + 1), action.id];
+        return {
+          ...state,
+          workspace: state.workspace,
+          activeNodeId: action.id,
+          navigationHistory: newHistory,
+          historyIndex: newHistory.length - 1,
+        };
+      }
+      
       return {
         ...state,
         activeNodeId: action.id,
-        historyIndex: idx >= 0 ? idx : state.historyIndex,
+        historyIndex: idx,
       };
     }
 

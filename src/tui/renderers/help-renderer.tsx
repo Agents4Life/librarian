@@ -3,53 +3,69 @@ import { Box, Text } from 'ink';
 import { theme } from '../theme.js';
 import type { RendererProps } from './registry.js';
 
-const COMMANDS = [
-  { cmd: '/search <q>', desc: 'Buscar' },
-  { cmd: '/status',     desc: 'Estado' },
-  { cmd: '/process',    desc: 'Procesar raw/' },
-  { cmd: '/review',     desc: 'Proposals' },
-  { cmd: '/health',     desc: 'Salud' },
-  { cmd: '/graph',      desc: 'Conexiones' },
-  { cmd: '/orphans',    desc: 'Huérfanas' },
-  { cmd: '/stale',      desc: 'Stale 90d' },
-  { cmd: '/activity',   desc: 'Actividad' },
+const commands = [
+  { slash: '/search', description: 'Buscar en la wiki', args: '<query>' },
+  { slash: '/status', description: 'Estado del vault' },
+  { slash: '/process', description: 'Procesar raw/' },
+  { slash: '/review', description: 'Revisar propuestas pendientes' },
+  { slash: '/graph', description: 'Mapa de conexiones' },
+  { slash: '/orphans', description: 'Notas huérfanas' },
+  { slash: '/stale', description: 'Notas sin tocar 90 días' },
+  { slash: '/health', description: 'Graph health dashboard' },
+  { slash: '/activity', description: 'Session activity log' },
 ];
 
-const KEYS = [
-  { key: '1-4',  desc: 'Cambiar tab' },
-  { key: 'j/k',  desc: 'Mover cursor' },
-  { key: 'Enter', desc: 'Abrir detalle' },
-  { key: 'a/r',  desc: 'Approve/Reject proposal' },
-  { key: 'Esc',  desc: 'Volver' },
-  { key: 'q',    desc: 'Salir' },
+const keyboardShortcuts = [
+  { key: 'Esc', description: 'Salir del composer / volver' },
+  { key: '1-4', description: 'Tabs: Chat, Inbox, Health, Help' },
+  { key: 'j/k', description: 'Mover cursor en listas' },
+  { key: 'Enter', description: 'Abrir detalle / acción' },
+  { key: 'a/r', description: 'Approve/Reject proposals' },
+  { key: '←/→', description: 'Páginas en resultados' },
+  { key: 'q', description: 'Salir de la app' },
 ];
 
-export const HelpRenderer: React.FC<RendererProps> = () => {
+export const HelpRenderer: React.FC<RendererProps> = ({ node }) => {
+  if (node.type !== 'help') return null;
+
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Text bold color={theme.primary}>Comandos</Text>
-      <Box flexDirection="row" gap={4}>
-        <Box flexDirection="column">
-          {COMMANDS.map((c) => (
-            <Box key={c.cmd}>
-              <Text color={theme.primary}>{c.cmd.padEnd(16)}</Text>
-              <Text dimColor>{c.desc}</Text>
-            </Box>
-          ))}
-        </Box>
-        <Box flexDirection="column">
-          <Text bold color={theme.muted}>Teclas</Text>
-          {KEYS.map((k) => (
-            <Box key={k.key}>
-              <Text color={theme.warning}>{k.key.padEnd(8)}</Text>
-              <Text dimColor>{k.desc}</Text>
-            </Box>
-          ))}
-        </Box>
+      <Text bold color={theme.primary}>Ayuda</Text>
+      <Text> </Text>
+      
+      <Box flexDirection="column" marginBottom={1}>
+        <Text bold color={theme.primary}>Comandos</Text>
+        <Text> </Text>
+        {commands.map((cmd, i) => (
+          <Box key={i} flexDirection="row" gap={2}>
+            <Text color={theme.primary} bold>{cmd.slash}{cmd.args ? ` ${cmd.args}` : ''}</Text>
+            <Text>{cmd.description}</Text>
+          </Box>
+        ))}
       </Box>
-
-      <Box marginTop={1}>
-        <Text dimColor>Workflow: escribís en raw/ → /process → /review → approve → wiki/ se actualiza</Text>
+      
+      <Box flexDirection="column" marginBottom={1}>
+        <Text bold color={theme.primary}>Atajos de teclado</Text>
+        <Text> </Text>
+        {keyboardShortcuts.map((shortcut, i) => (
+          <Box key={i} flexDirection="row" gap={2}>
+            <Text color={theme.muted} bold>[{shortcut.key}]</Text>
+            <Text>{shortcut.description}</Text>
+          </Box>
+        ))}
+      </Box>
+      
+      <Box flexDirection="column">
+        <Text bold color={theme.primary}>Modos</Text>
+        <Text> </Text>
+        <Box flexDirection="row" gap={2}>
+          <Text color={theme.primary} bold>✎ WRITE</Text>
+          <Text>Modo escritura (composer enfocado)</Text>
+        </Box>
+        <Box flexDirection="row" gap={2}>
+          <Text color={theme.warning} bold>⊞ NAV</Text>
+          <Text>Modo navegación (teclas habilitadas)</Text>
+        </Box>
       </Box>
     </Box>
   );

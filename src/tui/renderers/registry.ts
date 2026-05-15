@@ -1,19 +1,18 @@
 import React from 'react';
-import type { WorkspaceNode } from '../state.js';
+import type { ReactNode } from 'react';
+import type { WorkspaceNode } from './types.js';
 
-export type RendererProps = {
+export interface RendererProps {
   node: WorkspaceNode;
   onAction: (action: string) => void;
+}
+
+export const RENDERERS: Record<string, React.ComponentType<RendererProps>> = {};
+
+export const registerRenderer = (type: string, component: React.ComponentType<RendererProps>) => {
+  RENDERERS[type] = component;
 };
 
-export type RendererComponent = React.FC<RendererProps>;
-
-const registry = new Map<string, RendererComponent>();
-
-export const registerRenderer = (type: string, component: RendererComponent) => {
-  registry.set(type, component);
-};
-
-export const getRenderer = (type: string): RendererComponent | undefined => {
-  return registry.get(type);
+export const getRenderer = (type: string): React.ComponentType<RendererProps> | null => {
+  return RENDERERS[type] || null;
 };

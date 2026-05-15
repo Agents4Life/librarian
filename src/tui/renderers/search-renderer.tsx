@@ -3,18 +3,45 @@ import { Box, Text } from 'ink';
 import { theme } from '../theme.js';
 import type { RendererProps } from './registry.js';
 
+const PAGE_SIZE = 15;
+
+interface SearchState {
+  page: number;
+  maxPage: number;
+}
+
 export const SearchRenderer: React.FC<RendererProps> = ({ node }) => {
+  const [state, setState] = React.useState<SearchState>(() => {
+    const maxPage = Math.max(0, Math.ceil(node.results.length / PAGE_SIZE) - 1);
+    return { page: 0, maxPage };
+  });
+
   if (node.type !== 'search') return null;
+
+  const startIdx = state.page * PAGE_SIZE;
+  const endIdx = startIdx + PAGE_SIZE;
+  const visible = node.results.slice(startIdx, endIdx);
+
+  const nextPage = () => setState(prev => ({ ...prev, page: Math.min(prev.page + 1, prev.maxPage) }));
+  const prevPage = () => setState(prev => ({ ...prev, page: Math.max(prev.page - 1, 0) }));
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Text bold color={theme.primary}>Resultados: "{node.query}"</Text>
+      <Box justifyContent="space-between" marginBottom={1}>
+        <Box gap={1}>
+          <Text bold color={theme.primary}>Resultados:</Text>
+          <Text>"{node.query}"</Text>
+        </Box>
+        <Text dimColor>{state.page + 1}/{state.maxPage + 1}</Text>
+      </Box>
       <Text dimColor>{node.results.length} resultados</Text>
       <Text> </Text>
-      {node.results.length === 0 && (
-        <Text dimColor>No se encontraron resultados.</Text>
+      
+      {visible.length === 0 && (
+        <Text dimColor>No se encontraron resultados en esta página.</Text>
       )}
-      {node.results.map((r, i) => (
+      
+      {visible.map((r, i) => (
         <Box key={i} flexDirection="column" marginBottom={1}>
           <Box gap={1}>
             <Text color={theme.primary}>{'→'}</Text>
@@ -26,6 +53,13 @@ export const SearchRenderer: React.FC<RendererProps> = ({ node }) => {
           )}
         </Box>
       ))}
+      
+      {node.results.length > PAGE_SIZE && (
+        <Box justifyContent="space-between" marginTop={1}>
+          <Text dimColor>[←/→] página anterior/siguiente</Text>
+          <Text dimColor>{startIdx + 1}-{Math.min(endIdx, node.results.length)} de {node.results.length} resultados</Text>
+        </Box>
+      )}
     </Box>
   );
 };

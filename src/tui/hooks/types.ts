@@ -1,0 +1,1 @@
+export type SlashCommandHandler = (slash: string, args: string) => Promise<void>;
