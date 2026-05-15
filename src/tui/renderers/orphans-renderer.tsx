@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { theme } from '../theme.js';
-import type { RendererProps } from './registry.js';
+import type { RendererProps } from '../renderers/registry.js';
+import { Clickable } from '../components/mouse-support.js';
 
 const PAGE_SIZE = 12;
 
@@ -25,6 +26,10 @@ export const OrphansRenderer: React.FC<RendererProps> = ({ node }) => {
   const nextPage = () => setState(prev => ({ ...prev, page: Math.min(prev.page + 1, prev.maxPage) }));
   const prevPage = () => setState(prev => ({ ...prev, page: Math.max(prev.page - 1, 0) }));
 
+  const openNote = (filePath: string) => {
+    console.log(`Opening orphan note: ${filePath}`);
+  };
+
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box justifyContent="space-between" marginBottom={1}>
@@ -42,7 +47,14 @@ export const OrphansRenderer: React.FC<RendererProps> = ({ node }) => {
         <Box key={i} flexDirection="column" marginBottom={1}>
           <Box gap={1}>
             <Text color={theme.primary}>◈</Text>
-            <Text bold>{note.file.split('/').pop()?.replace('.md', '')}</Text>
+            
+            <Clickable
+              onClick={() => openNote(note.file)}
+              hoverText="open note"
+            >
+              <Text bold>{note.file.split('/').pop()?.replace('.md', '')}</Text>
+            </Clickable>
+            
             {note.has_outgoing && <Text color={theme.success}>→</Text>}
             {note.has_incoming && <Text color={theme.accent}>←</Text>}
           </Box>
@@ -50,9 +62,31 @@ export const OrphansRenderer: React.FC<RendererProps> = ({ node }) => {
         </Box>
       ))}
 
+      {/* Pagination controls */}
       {node.notes.length > PAGE_SIZE && (
         <Box justifyContent="space-between" marginTop={1}>
-          <Text dimColor>[←/→] página anterior/siguiente</Text>
+          <Box gap={2}>
+            <Clickable
+              onClick={prevPage}
+              disabled={state.page === 0}
+              hoverText="previous page"
+            >
+              <Text color={state.page === 0 ? theme.muted : theme.primary}>
+                ← Previous
+              </Text>
+            </Clickable>
+            
+            <Clickable
+              onClick={nextPage}
+              disabled={state.page === state.maxPage}
+              hoverText="next page"
+            >
+              <Text color={state.page === state.maxPage ? theme.muted : theme.primary}>
+                Next →
+              </Text>
+            </Clickable>
+          </Box>
+          
           <Text dimColor>{startIdx + 1}-{Math.min(endIdx, node.notes.length)} de {node.notes.length} notas</Text>
         </Box>
       )}

@@ -1,8 +1,9 @@
-import React, { useCallback } from 'react';
-import { Box, Text, useInput } from 'ink';
+import React from 'react';
+import { Box, Text } from 'ink';
 import { theme } from '../theme.js';
 import { useAppState } from '../state.js';
-import type { RendererProps } from './registry.js';
+import type { RendererProps } from '../renderers/registry.js';
+import { Clickable } from '../components/mouse-support.js';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: theme.warning,
@@ -14,11 +15,16 @@ const STATUS_COLORS: Record<string, string> = {
   rolled_back: theme.warning,
 };
 
+const statusColor = (status: string) => STATUS_COLORS[status] || theme.primary;
+
 const MAX_VISIBLE = 15;
 
 export const ProposalInboxRenderer: React.FC<RendererProps> = ({ node, onAction }) => {
   const { state, dispatch } = useAppState();
 
+  // Import useInput here to avoid conflicts
+  const { useInput } = require('ink');
+  
   useInput((input, key) => {
     if (node.type !== 'proposal-inbox') return;
     if (state.focusedPane === 'composer') return;
@@ -31,7 +37,6 @@ export const ProposalInboxRenderer: React.FC<RendererProps> = ({ node, onAction 
       const proposal = node.proposals[node.cursor];
       if (proposal) onAction(`open-detail:${proposal.id}`);
     } else if (input === 'h') {
-      // Show help for inbox
       dispatch({ type: 'ADD_NODE', node: { type: 'help', id: crypto.randomUUID(), createdAt: Date.now() } });
     }
   });
@@ -41,6 +46,14 @@ export const ProposalInboxRenderer: React.FC<RendererProps> = ({ node, onAction 
   const startIdx = Math.max(0, node.cursor - Math.floor(MAX_VISIBLE / 2));
   const endIdx = Math.min(node.proposals.length, startIdx + MAX_VISIBLE);
   const visible = node.proposals.slice(startIdx, endIdx);
+
+  const handleProposalClick = (proposalId: string) => {
+    onAction(`open-detail:${proposalId}`);
+  };
+
+  const handleQuickAction = (proposalId: string, action: 'approve' | 'reject') => {
+    onAction(`${action}:${proposalId}`);
+  };
 
   return (
     <Box flexDirection="column" paddingX={1}>
@@ -62,14 +75,24 @@ export const ProposalInboxRenderer: React.FC<RendererProps> = ({ node, onAction 
                 <Text color={isCursor ? theme.primary : theme.muted}>
                   {isCursor ? '▸' : '·'}
                 </Text>
-                <Text bold={isCursor} color={theme.primary}>
-                  {proposal.sourcePath.split('/').pop()?.replace('.md', '')}
-                </Text>
+                
+                <Clickable
+                  onClick={() => handleProposalClick(proposal.id)}
+                  hoverText="open details"
+                  active={isCursor}
+                >
+                  <Text bold={isCursor} color={theme.primary}>
+                    {proposal.sourcePath.split('/').pop()?.replace('.md', '')}
+                  </Text>
+                </Clickable>
+                
                 <Text dimColor>→</Text>
                 <Text dimColor>
                   {proposal.proposal.target.split('/').pop()?.replace('.md', '')}
                 </Text>
-                <Text color={STATUS_COLORS[proposal.status] || theme.primary}>
+                <Text 
+                  color={statusColor(proposal.status)}
+                >
                   {proposal.status}
                 </Text>
               </Box>
@@ -82,8 +105,20 @@ export const ProposalInboxRenderer: React.FC<RendererProps> = ({ node, onAction 
               
               {isCursor && (
                 <Box flexDirection="row" gap={2} marginLeft={2}>
-                  <Text dimColor>a: approve</Text>
-                  <Text dimColor>r: reject</Text>
+                  <Clickable
+                    onClick={() => handleQuickAction(proposal.id, 'approve')}
+                    hoverText="approve"
+                  >
+                    <Text color={theme.success}>a: approve</Text>
+                  </Clickable>
+                  
+                  <Clickable
+                    onClick={() => handleQuickAction(proposal.id, 'reject')}
+                    hoverText="reject"
+                  >
+                    <Text color={theme.error}>r: reject</Text>
+                  </Clickable>
+                  
                   <Text dimColor>o: open</Text>
                   <Text dimColor>{proposal.status === 'failed' ? 't: retry' : ''}</Text>
                   <Text dimColor>{proposal.status === 'failed' ? 'x: reset' : ''}</Text>

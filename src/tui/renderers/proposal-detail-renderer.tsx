@@ -1,10 +1,11 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { Box, Text } from 'ink';
 import { useInput } from 'ink';
 import { theme } from '../theme.js';
 import { useAppState } from '../state.js';
-import type { RendererProps } from './registry.js';
+import type { RendererProps } from '../renderers/registry.js';
 import { ProposalPreview } from '../components/proposal-preview.js';
+import { Clickable } from '../components/mouse-support.js';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: theme.warning,
@@ -26,7 +27,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
   const { state, dispatch } = useAppState();
   const [detailState, setDetailState] = React.useState<ProposalDetailState>({ confirming: null });
 
-  useInput(useCallback((input: string, key: any) => {
+  useInput((input: string, key: any) => {
     if (node.type !== "proposal-detail") return;
     if (state.focusedPane === "composer") return;
     const p = node.proposal;
@@ -58,12 +59,16 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
     } else if (key.escape) {
       onAction("back-to-inbox");
     }
-  }, [node, state.focusedPane, dispatch, onAction, detailState.confirming]));
+  }, [node, state.focusedPane, dispatch, onAction, detailState.confirming]);
 
   if (node.type !== "proposal-detail") return null;
 
   const p = node.proposal;
   const canRetry = p.status === "failed" || p.status === "rolled_back";
+
+  const handleQuickAction = (action: 'approve' | 'reject') => {
+    setDetailState({ confirming: action });
+  };
 
   return (
     <Box flexDirection="column" paddingX={1}>
@@ -81,13 +86,17 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
             {p.sourcePath} → {p.proposal.target}
           </Text>
           <Text> </Text>
+          
           <Box gap={2}>
-            <Text color={theme.success} bold>y</Text>
-            <Text>Sí, {detailState.confirming === 'approve' ? 'aprobar' : 'rechazar'}</Text>
-          </Box>
-          <Box gap={2}>
-            <Text color={theme.error} bold>n</Text>
-            <Text>Cancelar</Text>
+            <Clickable onClick={() => onAction(`${detailState.confirming}:${p.id}`)}>
+              <Text color={theme.success} bold>y</Text>
+              <Text> Sí, {detailState.confirming === 'approve' ? 'aprobar' : 'rechazar'}</Text>
+            </Clickable>
+            
+            <Clickable onClick={() => setDetailState({ confirming: null })}>
+              <Text color={theme.error} bold>n</Text>
+              <Text> Cancelar</Text>
+            </Clickable>
           </Box>
         </Box>
       )}
@@ -148,7 +157,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
       {p.diagnostics.warnings.length > 0 && (
         <Box flexDirection="column" marginTop={1}>
           <Text bold color={theme.warning}>Warnings</Text>
-          {p.diagnostics.warnings.map((w, i) => (
+          {p.diagnostics.warnings.map((w: any, i: number) => (
             <Text key={i} dimColor>  - {w}</Text>
           ))}
         </Box>
@@ -157,7 +166,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
       {p.diagnostics.duplicateCandidates.length > 0 && (
         <Box flexDirection="column" marginTop={1}>
           <Text bold color={theme.warning}>Duplicate candidates</Text>
-          {p.diagnostics.duplicateCandidates.map((d, i) => (
+          {p.diagnostics.duplicateCandidates.map((d: any, i: number) => (
             <Text key={i} dimColor>  - {d}</Text>
           ))}
         </Box>
@@ -166,7 +175,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
       {p.transitions.length > 0 && (
         <Box flexDirection="column" marginTop={1}>
           <Text bold>Transition History</Text>
-          {p.transitions.map((t, i) => (
+          {p.transitions.map((t: any, i: number) => (
             <Box key={i} flexDirection="row" gap={1}>
               <Text dimColor>{new Date(t.at).toLocaleString()}</Text>
               <Text color={statusColor(t.from)}>{t.from}</Text>
@@ -186,10 +195,57 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
         />
       )}
 
-      <Box marginTop={1}>
-        <Text dimColor>
-          a approve{" · "}r reject{canRetry ? " · t retry · x reset" : ""}{" · "}p {node.showPreview ? "hide" : "show"} preview{" · "}Esc back
-        </Text>
+      {/* Action buttons with click support */}
+      <Box flexDirection="row" gap={3} marginTop={1}>
+        <Clickable
+          onClick={() => handleQuickAction('approve')}
+          disabled={detailState.confirming !== null}
+          hoverText="approve this proposal"
+        >
+          <Text color={theme.success} bold>✓ Approve</Text>
+        </Clickable>
+        
+        <Clickable
+          onClick={() => handleQuickAction('reject')}
+          disabled={detailState.confirming !== null}
+          hoverText="reject this proposal"
+        >
+          <Text color={theme.error} bold>✗ Reject</Text>
+        </Clickable>
+        
+        {canRetry && (
+          <Clickable
+            onClick={() => onAction(`retry:${p.id}`)}
+            hoverText="retry failed proposal"
+          >
+            <Text color={theme.warning} bold>↻ Retry</Text>
+          </Clickable>
+        )}
+        
+        {canRetry && (
+          <Clickable
+            onClick={() => onAction(`reset:${p.id}`)}
+            hoverText="reset to pending"
+          >
+            <Text color={theme.primary} bold>↺ Reset</Text>
+          </Clickable>
+        )}
+        
+        <Clickable
+          onClick={() => dispatch({ type: "TOGGLE_PREVIEW", nodeId: node.id })}
+          hoverText={node.showPreview ? "hide preview" : "show preview"}
+        >
+          <Text color={theme.primary} bold>
+            {node.showPreview ? "👁 Hide" : "👁 Show"} Preview
+          </Text>
+        </Clickable>
+        
+        <Clickable
+          onClick={() => onAction("back-to-inbox")}
+          hoverText="back to inbox"
+        >
+          <Text color={theme.muted} bold>← Back</Text>
+        </Clickable>
       </Box>
     </Box>
   );
