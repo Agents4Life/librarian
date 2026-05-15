@@ -6,10 +6,24 @@ export const theme = {
   muted: 'gray',
   text: 'white',
   accent: 'magenta',
-  bgPanel: 'gray',
+  bgPanel: 'black',
   borderActive: 'cyan',
   borderSubtle: 'gray',
   border: 'white',
+} as const;
+
+export const box = {
+  tl: '╭',
+  tr: '╮',
+  bl: '╰',
+  br: '╯',
+  h: '─',
+  v: '│',
+  teeL: '├',
+  teeR: '┤',
+  teeT: '┬',
+  teeB: '┴',
+  cross: '┼',
 } as const;
 
 export const icons = {
@@ -39,3 +53,9 @@ export const agentStates = {
   error: { icon: '✗', color: 'red' as const },
   waiting: { icon: '○', color: 'yellow' as const },
 } as const;
+
+export const hline = (width: number): string => box.h.repeat(width);
+export const hlinePad = (text: string, width: number): string => {
+  const pad = Math.max(0, width - text.length - 2);
+  return ` ${text} ${box.h.repeat(pad)}`;
+};

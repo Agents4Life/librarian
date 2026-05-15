@@ -90,27 +90,41 @@ const requestChatCompletion = async (
 };
 
 export const createLlmClient = (config: LlmConfig = defaultLlmConfig) => ({
-  healthcheck: async () => {
+  healthcheck: async (): Promise<{ status: 'ready' | 'no-model' | 'down'; model?: string }> => {
     const baseUrls = [config.baseUrl, ...(config.fallbackBaseUrls ?? [])];
-    let lastStatus = 0;
+    const candidates = [config.model, config.fallbackModel].filter((m): m is string => Boolean(m));
 
     for (const baseUrl of baseUrls) {
-      const response = await withTimeout((signal) => fetch(`${baseUrl}/models`, { signal }), config.timeoutMs).catch(() => null);
+      const response = await withTimeout(
+        (signal) => fetch(`${baseUrl}/models`, { signal }),
+        config.timeoutMs,
+      ).catch(() => null);
 
-      if (response?.ok) {
-        return {
-          ok: true,
-          status: response.status,
-        };
+      if (!response?.ok) continue;
+
+      // Parse model list and check if our model is available
+      try {
+        const body = await response.json() as { data?: Array<{ id: string }> };
+        const availableModels = body.data?.map((m) => m.id) ?? [];
+
+        for (const candidate of candidates) {
+          // Ollama returns model names like "qwen3.5:4b" — match exactly or by prefix
+          const found = availableModels.some(
+            (m) => m === candidate || m.startsWith(candidate.split(':')[0]),
+          );
+          if (found) {
+            return { status: 'ready', model: candidate };
+          }
+        }
+
+        return { status: 'no-model', model: candidates[0] };
+      } catch {
+        // Can't parse response — server is up but something's off
+        return { status: 'no-model', model: candidates[0] };
       }
-
-      lastStatus = response?.status ?? lastStatus;
     }
 
-    return {
-      ok: false,
-      status: lastStatus,
-    };
+    return { status: 'down' };
   },
 
   chat: async (messages: LlmMessage[]): Promise<LlmResponse> => {

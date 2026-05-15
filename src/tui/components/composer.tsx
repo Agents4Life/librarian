@@ -8,11 +8,9 @@ interface ComposerProps {
   onSubmit: (value: string) => void;
 }
 
-const hints = '/help · /search · /status · /process · /review · /health · /graph · /orphans · /stale · /activity';
-
 export const Composer: React.FC<ComposerProps> = ({ onSubmit }) => {
   const { state, dispatch } = useAppState();
-  const [focused, setFocused] = useState(true);
+  const isFocused = state.focusedPane === 'composer';
 
   const handleSubmit = (value: string) => {
     if (!value.trim()) return;
@@ -21,23 +19,24 @@ export const Composer: React.FC<ComposerProps> = ({ onSubmit }) => {
   };
 
   return (
-    <Box flexDirection="column">
-      <Box borderStyle="single" borderLeft={false} borderRight={false} borderBottom={false} borderColor={theme.borderSubtle} />
-      <Box paddingX={1}>
-        <Box flexDirection="column">
-          <Text dimColor>{hints}</Text>
-          <Box gap={1}>
-            <Text bold color={theme.primary}>{'>'}</Text>
-            <TextInput
-              value={state.composerValue}
-              onChange={(v) => dispatch({ type: 'SET_COMPOSER_VALUE', value: v })}
-              onSubmit={handleSubmit}
-              focus={focused}
-              placeholder="Escribí un mensaje o /comando..."
-              showCursor={true}
-            />
-          </Box>
-        </Box>
+    <Box flexDirection="column" paddingX={1}>
+      <Text color={theme.borderSubtle}>{'─'.repeat(80)}</Text>
+      <Box gap={1}>
+        <Text bold color={isFocused ? theme.primary : theme.muted}>
+          {isFocused ? '❯' : '·'}
+        </Text>
+        {isFocused ? (
+          <TextInput
+            value={state.composerValue}
+            onChange={(v) => dispatch({ type: 'SET_COMPOSER_VALUE', value: v })}
+            onSubmit={handleSubmit}
+            focus={true}
+            placeholder="mensaje o /comando...  (Esc → navegar)"
+            showCursor={true}
+          />
+        ) : (
+          <Text dimColor>Pulsa Enter o i para escribir</Text>
+        )}
       </Box>
     </Box>
   );

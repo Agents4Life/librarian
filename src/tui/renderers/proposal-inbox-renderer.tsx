@@ -11,7 +11,7 @@ export const ProposalInboxRenderer: React.FC<RendererProps> = ({ node, onAction 
 
   useInput(useCallback((input, key) => {
     if (node.type !== "proposal-inbox") return;
-    if (state.composerValue !== "") return;
+    if (state.focusedPane === "composer") return;
 
     if (input === "j" || key.downArrow) {
       dispatch({ type: "MOVE_CURSOR", nodeId: node.id, direction: "down" });
@@ -23,7 +23,7 @@ export const ProposalInboxRenderer: React.FC<RendererProps> = ({ node, onAction 
         onAction(`open-detail:${selected.id}`);
       }
     }
-  }, [node, state.composerValue, dispatch, onAction]));
+  }, [node, state.focusedPane, dispatch, onAction]));
 
   if (node.type !== "proposal-inbox") return null;
 

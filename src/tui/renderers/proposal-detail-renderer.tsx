@@ -23,7 +23,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
 
   useInput(useCallback((input, key) => {
     if (node.type !== "proposal-detail") return;
-    if (state.composerValue !== "") return;
+    if (state.focusedPane === "composer") return;
     const p = node.proposal;
 
     if (input === "a") {
@@ -39,7 +39,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
     } else if (input === "q" || key.escape) {
       onAction("back-to-inbox");
     }
-  }, [node, state.composerValue, dispatch, onAction]));
+  }, [node, state.focusedPane, dispatch, onAction]));
 
   if (node.type !== "proposal-detail") return null;
 

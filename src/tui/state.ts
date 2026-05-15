@@ -25,16 +25,6 @@ export interface GraphStats {
   orphans: number;
 }
 
-export interface Review {
-  id: string;
-  type: 'merge' | 'create' | 'expand';
-  source: string;
-  target: string;
-  diff_id: string;
-  status: 'pending' | 'approved' | 'rejected';
-  preview?: string;
-}
-
 export interface OrphanNote {
   file: string;
   has_outgoing: boolean;
@@ -56,7 +46,7 @@ export interface InboxSummary {
 export type WorkspaceNode =
   | { type: 'chat'; id: string; messages: ChatMessage[]; createdAt: number }
   | { type: 'search'; id: string; query: string; results: SearchResult[]; createdAt: number }
-  | { type: 'review'; id: string; reviews: Review[]; activeIndex: number; createdAt: number }
+
   | { type: 'status'; id: string; stats: WikiStats; graph: GraphStats; createdAt: number }
   | { type: 'graph'; id: string; stats: GraphStats; createdAt: number }
   | { type: 'process'; id: string; inbox: InboxSummary; createdAt: number }
@@ -78,9 +68,11 @@ export interface ActivityEntry {
 
 export type IndexCacheStatus = 'fresh' | 'stale' | 'missing' | 'rebuilding';
 
+export type FocusedPane = 'composer' | 'navigation';
+
 export interface AppState {
   vaultPath: string;
-  ollamaStatus: 'ok' | 'down' | 'checking';
+  ollamaStatus: 'ready' | 'no-model' | 'down' | 'checking';
   indexStatus: IndexCacheStatus;
 
   workspace: WorkspaceNode[];
@@ -89,9 +81,9 @@ export interface AppState {
   historyIndex: number;
 
   activityLog: ActivityEntry[];
-  reviews: Review[];
   recentItems: string[];
   composerValue: string;
+  focusedPane: FocusedPane;
   loading: boolean;
   lastIndexAt: number | null;
   activityEvents: ActivityEvent[];
@@ -99,7 +91,7 @@ export interface AppState {
 
 export type AppAction =
   | { type: 'SET_VAULT_PATH'; vaultPath: string }
-  | { type: 'SET_OLLAMA_STATUS'; status: 'ok' | 'down' | 'checking' }
+  | { type: 'SET_OLLAMA_STATUS'; status: 'ready' | 'no-model' | 'down' | 'checking' }
   | { type: 'SET_INDEX_STATUS'; status: IndexCacheStatus }
   | { type: 'ADD_NODE'; node: WorkspaceNode }
   | { type: 'UPDATE_NODE'; id: string; patch: Partial<WorkspaceNode> }
@@ -107,11 +99,9 @@ export type AppAction =
   | { type: 'NAVIGATE_BACK' }
   | { type: 'NAVIGATE_FORWARD' }
   | { type: 'PUSH_ACTIVITY'; entry: Omit<ActivityEntry, 'id' | 'timestamp'> }
-  | { type: 'SET_REVIEWS'; reviews: Review[] }
-  | { type: 'APPROVE_REVIEW'; id: string }
-  | { type: 'REJECT_REVIEW'; id: string }
   | { type: 'ADD_RECENT'; item: string }
   | { type: 'SET_COMPOSER_VALUE'; value: string }
+  | { type: 'SET_FOCUSED_PANE'; pane: FocusedPane }
   | { type: 'SET_LOADING'; loading: boolean }
   | { type: 'UPDATE_INBOX_PROPOSALS'; nodeId: string; proposals: StoredProposal[] }
   | { type: 'MOVE_CURSOR'; nodeId: string; direction: 'up' | 'down' }
@@ -188,21 +178,6 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ].slice(-50),
       };
 
-    case 'SET_REVIEWS':
-      return { ...state, reviews: action.reviews };
-
-    case 'APPROVE_REVIEW':
-      return {
-        ...state,
-        reviews: state.reviews.map((r) => r.id === action.id ? { ...r, status: 'approved' as const } : r),
-      };
-
-    case 'REJECT_REVIEW':
-      return {
-        ...state,
-        reviews: state.reviews.map((r) => r.id === action.id ? { ...r, status: 'rejected' as const } : r),
-      };
-
     case 'ADD_RECENT':
       return {
         ...state,
@@ -211,6 +186,9 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
 
     case 'SET_COMPOSER_VALUE':
       return { ...state, composerValue: action.value };
+
+    case 'SET_FOCUSED_PANE':
+      return { ...state, focusedPane: action.pane };
 
     case 'SET_LOADING':
       return { ...state, loading: action.loading };
@@ -290,9 +268,9 @@ export const createInitialState = (vaultPath: string): AppState => {
     navigationHistory: [helpNodeId],
     historyIndex: 0,
     activityLog: [],
-    reviews: [],
     recentItems: [],
     composerValue: '',
+    focusedPane: 'composer',
     loading: false,
     lastIndexAt: null,
     activityEvents: [],
