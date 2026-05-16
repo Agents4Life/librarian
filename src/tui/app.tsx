@@ -282,15 +282,18 @@ export const App: React.FC = () => {
     if (parsed.isCommand && parsed.command) {
       if (parsed.command.slash === '/review') {
         dispatch({ type: 'SET_LOADING', loading: true });
-        uiEventBus.emit({ type: 'agent:thinking', message: 'Loading proposals...' });
+        uiEventBus.emit({ type: 'agent:thinking', message: 'Cargando propuestas...' });
+        const t0 = Date.now();
         await loadProposalInbox();
+        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `Listo (${formatElapsed(Date.now() - t0)})` } });
         dispatch({ type: 'SET_LOADING', loading: false });
         return;
       }
 
       if (parsed.command.slash === '/health') {
         dispatch({ type: 'SET_LOADING', loading: true });
-        uiEventBus.emit({ type: 'agent:thinking', message: 'Computing graph health...' });
+        uiEventBus.emit({ type: 'agent:thinking', message: 'Calculando salud del grafo...' });
+        const t0 = Date.now();
         try {
           const ctx = await createIndexContext(state.vaultPath);
           const store = new FileProposalStore(state.vaultPath);
@@ -298,7 +301,7 @@ export const App: React.FC = () => {
           const node: WorkspaceNode = { type: 'graph-health', id: crypto.randomUUID(), summary, createdAt: Date.now() };
           dispatch({ type: 'ADD_NODE', node });
           dispatch({ type: 'SET_LAST_INDEX_AT', timestamp: Date.now() });
-          uiEventBus.emit({ type: 'agent:done', nodeId: node.id });
+          dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `Listo (${formatElapsed(Date.now() - t0)})` } });
         } catch (error) {
           uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
         } finally {
@@ -331,7 +334,8 @@ export const App: React.FC = () => {
 
       if (parsed.command.slash === '/orphans') {
         dispatch({ type: 'SET_LOADING', loading: true });
-        uiEventBus.emit({ type: 'agent:thinking', message: 'Finding orphan notes...' });
+        uiEventBus.emit({ type: 'agent:thinking', message: 'Buscando notas huerfanas...' });
+        const t0 = Date.now();
         try {
           const ctx = await createIndexContext(state.vaultPath);
           const orphans = ctx.query.getOrphans();
@@ -342,7 +346,7 @@ export const App: React.FC = () => {
             createdAt: Date.now(),
           };
           dispatch({ type: 'ADD_NODE', node });
-          uiEventBus.emit({ type: 'agent:done', nodeId: node.id });
+          dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `${orphans.length} huerfanas (${formatElapsed(Date.now() - t0)})` } });
         } catch (error) {
           uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
         } finally {
@@ -352,15 +356,15 @@ export const App: React.FC = () => {
       }
 
       dispatch({ type: 'SET_LOADING', loading: true });
-      uiEventBus.emit({ type: 'agent:thinking', message: `Running ${parsed.command.slash}...` });
-
+      uiEventBus.emit({ type: 'agent:thinking', message: `Ejecutando ${parsed.command.slash}...` });
+      const cmdStart = Date.now();
       try {
         const run = await runLibrarian(parsed.command.slash === '/search' ? `buscar ${parsed.args}` : input);
 
         const node = mapRunToNode(run);
         if (node) {
           dispatch({ type: 'ADD_NODE', node });
-          uiEventBus.emit({ type: 'agent:done', nodeId: node.id });
+          dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `Listo (${formatElapsed(Date.now() - cmdStart)})` } });
         }
       } catch (error) {
         uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
@@ -379,12 +383,15 @@ export const App: React.FC = () => {
 
       dispatch({ type: 'UPDATE_NODE', id: chatNode.id, patch: { messages: updatedMessages } as Partial<WorkspaceNode> });
       dispatch({ type: 'SET_LOADING', loading: true });
-      uiEventBus.emit({ type: 'agent:thinking', message: 'Thinking...' });
+      uiEventBus.emit({ type: 'agent:thinking', message: 'Clasificando consulta...' });
 
+      const startTime = Date.now();
       try {
         const run = await runLibrarian(parsed.args, state.vaultPath);
+        const elapsed = Date.now() - startTime;
+        uiEventBus.emit({ type: 'agent:thinking', message: 'Formateando respuesta...' });
         const responseText = formatRunResult(run.result, state.vaultPath);
-        const assistantMsg: ChatMessage = { role: 'assistant', content: responseText };
+        const assistantMsg: ChatMessage = { role: 'assistant', content: `${responseText}\n\n⏱ ${formatElapsed(elapsed)}` };
 
         dispatch({
           type: 'UPDATE_NODE',
@@ -483,6 +490,12 @@ export const App: React.FC = () => {
       </Box>
     </AppStateContext.Provider>
   );
+};
+
+const formatElapsed = (ms: number): string => {
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = (ms / 1000).toFixed(1);
+  return `${seconds}s`;
 };
 
 const cleanLlmResponse = (text: string): string =>
