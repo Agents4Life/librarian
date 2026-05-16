@@ -26,7 +26,7 @@ export const Composer: React.FC<ComposerProps> = ({ onSubmit }) => {
         onChange={(v) => dispatch({ type: 'SET_COMPOSER_VALUE', value: v })}
         onSubmit={handleSubmit}
         focus={focused}
-        placeholder="mensaje o /comando..."
+        placeholder="preguntame algo..."
         showCursor={true}
       />
     </Box>

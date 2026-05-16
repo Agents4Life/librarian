@@ -32,7 +32,6 @@ export const TabBar: React.FC = () => {
           </React.Fragment>
         );
       })}
-      <Text dimColor>   Tab cambia vista</Text>
     </Box>
   );
 };

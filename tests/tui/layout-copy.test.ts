@@ -17,7 +17,7 @@ describe('TUI layout and copy', () => {
 
   it('uses human-readable status labels', () => {
     assert.equal(getIndexStatusLabel('fresh'), 'indice listo');
-    assert.equal(getIndexStatusLabel('rebuilding'), 'actualizando indice');
+    assert.equal(getIndexStatusLabel('rebuilding'), 'actualizando indice...');
     assert.equal(getLlmStatusLabel('ready'), 'LLM listo');
     assert.equal(getLlmStatusLabel('down'), 'LLM desconectado');
   });

@@ -68,8 +68,8 @@ export const ChatRenderer: React.FC<RendererProps> = ({ node }) => {
   if (visible.length === 0) {
     return (
       <Box flexDirection="column">
-        <Text color={theme.primary} bold>Chat con Librarian</Text>
-        <Text dimColor>Escribí una pregunta o /comando para empezar.</Text>
+        <Text color={theme.primary} bold>Hola! Soy Librarian. Puedo ayudarte con tu vault.</Text>
+        <Text dimColor>Ejemplos: "buscar sobre clean architecture", "estado del vault", "/help"</Text>
       </Box>
     );
   }

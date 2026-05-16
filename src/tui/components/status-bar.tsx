@@ -6,9 +6,9 @@ import { useAppState } from '../state.js';
 export const getIndexStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
     fresh: 'indice listo',
-    stale: 'indice viejo',
+    stale: '⚠ actualizar indice',
     missing: 'sin indice',
-    rebuilding: 'actualizando indice',
+    rebuilding: 'actualizando indice...',
   };
   return labels[status] ?? 'sin indice';
 };
@@ -28,11 +28,11 @@ export const StatusBar: React.FC = () => {
   const { state } = useAppState();
   const vaultName = state.vaultPath.split('/').pop() ?? state.vaultPath;
 
-  const ollamaCfg: Record<string, { icon: string; color: string; label: string }> = {
-    ready: { icon: '◉', color: theme.success, label: 'ok' },
-    'no-model': { icon: '◎', color: theme.warning, label: 'no-model' },
-    down: { icon: '○', color: theme.error, label: 'down' },
-    checking: { icon: '◌', color: theme.muted, label: '...' },
+  const ollamaCfg: Record<string, { icon: string; color: string }> = {
+    ready: { icon: '◉', color: theme.success },
+    'no-model': { icon: '◎', color: theme.warning },
+    down: { icon: '✗', color: theme.error },
+    checking: { icon: '◌', color: theme.muted },
   };
   const ollama = ollamaCfg[state.ollamaStatus] ?? ollamaCfg.checking;
 
@@ -58,14 +58,13 @@ export const StatusBar: React.FC = () => {
 
   return (
     <Box gap={1}>
-      <Text bold color={theme.primary}>📚</Text>
       <Text bold>{vaultName}</Text>
       <Text dimColor>│</Text>
       <Text color={idx.color}>{idx.icon} {idx.label}</Text>
-      <Text dimColor>│</Text>
-      {pendingCount > 0
-        ? <Text color={theme.warning}>por revisar:{pendingCount}</Text>
-        : <Text dimColor>sin pendientes</Text>}
+      {pendingCount > 0 && <>
+        <Text dimColor>│</Text>
+        <Text color={theme.warning}>por revisar: {pendingCount}</Text>
+      </>}
       {h && <><Text dimColor>│</Text><Text color={h.color}>{h.icon}</Text></>}
       <Text dimColor>│</Text>
       <Text color={ollama.color}>{ollama.icon} {getLlmStatusLabel(state.ollamaStatus, state.ollamaModel || undefined)}</Text>

@@ -276,6 +276,18 @@ export const App: React.FC = () => {
     async () => {},
   );
 
+  const CHAT_INTENTS = new Set(['/search', '/status', '/process', '/stale']);
+
+  const sendToChat = useCallback((userInput: string, responseText: string, elapsed: number) => {
+    const chatNode = state.workspace.find((n) => n.type === 'chat');
+    if (!chatNode || chatNode.type !== 'chat') return;
+    const userMsg: ChatMessage = { role: 'user', content: userInput };
+    const assistantMsg: ChatMessage = { role: 'assistant', content: `${responseText}\n\n⏱ ${formatElapsed(elapsed)}` };
+    const updatedMessages = [...chatNode.messages, userMsg, assistantMsg];
+    dispatch({ type: 'UPDATE_NODE', id: chatNode.id, patch: { messages: updatedMessages } as Partial<WorkspaceNode> });
+    dispatch({ type: 'SET_ACTIVE_NODE', id: chatNode.id });
+  }, [state.workspace, dispatch]);
+
   const handleComposerSubmit = useCallback(async (input: string) => {
     const parsed = parseComposerInput(input, commands);
 
@@ -360,11 +372,18 @@ export const App: React.FC = () => {
       const cmdStart = Date.now();
       try {
         const run = await runLibrarian(parsed.command.slash === '/search' ? `buscar ${parsed.args}` : input);
+        const elapsed = Date.now() - cmdStart;
 
-        const node = mapRunToNode(run);
-        if (node) {
-          dispatch({ type: 'ADD_NODE', node });
-          dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `Listo (${formatElapsed(Date.now() - cmdStart)})` } });
+        if (CHAT_INTENTS.has(parsed.command.slash)) {
+          const responseText = formatRunResult(run.result, state.vaultPath);
+          sendToChat(input, responseText, elapsed);
+          dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `Listo (${formatElapsed(elapsed)})` } });
+        } else {
+          const node = mapRunToNode(run);
+          if (node) {
+            dispatch({ type: 'ADD_NODE', node });
+            dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `Listo (${formatElapsed(elapsed)})` } });
+          }
         }
       } catch (error) {
         uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
