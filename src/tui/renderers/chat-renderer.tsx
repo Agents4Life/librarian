@@ -4,6 +4,9 @@ import { theme } from '../theme.js';
 import type { RendererProps } from './registry.js';
 import type { ChatMessage } from '../types.js';
 
+const clean = (text: string) =>
+  text.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, '').trim();
+
 export const ChatRenderer: React.FC<RendererProps> = ({ node }) => {
   if (node.type !== 'chat') return null;
 
@@ -22,11 +25,12 @@ export const ChatRenderer: React.FC<RendererProps> = ({ node }) => {
   return (
     <Box flexDirection="column" paddingX={1}>
       {visible.map((msg: ChatMessage, i: number) => {
+        const content = clean(msg.content);
         if (msg.role === 'user') {
           return (
             <Box key={i} flexDirection="column" marginBottom={1} borderStyle="single" borderLeft={true} borderRight={false} borderTop={false} borderBottom={false} borderColor={theme.primary} paddingLeft={1}>
               <Text bold color={theme.primary}>Vos</Text>
-              <Text wrap="wrap">{msg.content}</Text>
+              <Text wrap="wrap">{content}</Text>
             </Box>
           );
         }
@@ -34,7 +38,7 @@ export const ChatRenderer: React.FC<RendererProps> = ({ node }) => {
         return (
           <Box key={i} flexDirection="column" marginBottom={1}>
             <Text bold color={theme.muted}>Librarian</Text>
-            <Text wrap="wrap">{msg.content}</Text>
+            <Text wrap="wrap">{content}</Text>
           </Box>
         );
       })}

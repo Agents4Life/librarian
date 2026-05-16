@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useReducer } from 'react';
-import { Box, Text, useApp, useInput } from 'ink';
+import { Box, Text, useInput } from 'ink';
 
 import { AppStateContext, appReducer, createInitialState, type WorkspaceNode } from './state.js';
 import { uiEventBus } from './event-bus.js';
@@ -62,7 +62,6 @@ const refreshAllStatusInbox = async (service: ReviewService, inboxNode: Workspac
 };
 
 export const App: React.FC = () => {
-  const { exit } = useApp();
   const [state, dispatch] = useReducer(appReducer, defaultConfig.vaultPath, createInitialState);
 
   const checkOllama = useCallback(async () => {
@@ -380,7 +379,7 @@ export const App: React.FC = () => {
         const run = await runLibrarian(parsed.args, state.vaultPath);
         const runResult = run.result as Record<string, unknown> | null;
         const responseText = typeof runResult?.content === 'string'
-          ? runResult.content
+          ? cleanLlmResponse(runResult.content)
           : runResult?.message
             ? String(runResult.message)
             : JSON.stringify(runResult ?? {});
@@ -406,15 +405,43 @@ export const App: React.FC = () => {
     }
   }, [state.workspace, state.activeNodeId]);
 
-  useInput((input, key) => {
-    if (input === 'q' && state.composerValue === '') {
-      exit();
-      return;
-    }
+  const TAB_MAP: Record<string, string> = {
+    '1': 'chat',
+    '2': 'proposal-inbox',
+    '3': 'graph-health',
+    '4': 'help',
+  };
 
+  useInput((input, key) => {
     if (key.escape) {
       if (state.composerValue === '') {
         dispatch({ type: 'NAVIGATE_BACK' });
+      }
+      return;
+    }
+
+    if (state.composerValue === '' && TAB_MAP[input]) {
+      const nodeType = TAB_MAP[input];
+      const existing = state.workspace.find((n) => n.type === nodeType);
+      if (existing) {
+        dispatch({ type: 'SET_ACTIVE_NODE', id: existing.id });
+      } else if (nodeType === 'proposal-inbox') {
+        loadProposalInbox();
+      } else if (nodeType === 'graph-health') {
+        (async () => {
+          dispatch({ type: 'SET_LOADING', loading: true });
+          try {
+            const ctx = await createIndexContext(state.vaultPath);
+            const store = new FileProposalStore(state.vaultPath);
+            const summary = await computeGraphHealth(ctx.query, store);
+            dispatch({ type: 'ADD_NODE', node: { type: 'graph-health', id: crypto.randomUUID(), summary, createdAt: Date.now() } });
+          } catch {} finally {
+            dispatch({ type: 'SET_LOADING', loading: false });
+          }
+        })();
+      } else {
+        const node: WorkspaceNode = { type: nodeType as any, id: crypto.randomUUID(), createdAt: Date.now() } as any;
+        dispatch({ type: 'ADD_NODE', node });
       }
     }
   });
@@ -423,10 +450,9 @@ export const App: React.FC = () => {
     <AppStateContext.Provider value={{ state, dispatch }}>
       <Box flexDirection="column" height="100%">
         <Header />
-        <Box borderStyle="single" borderLeft={false} borderRight={false} borderTop={false} borderBottom={false} borderColor={theme.borderSubtle} />
         <Box flexDirection="row" flexGrow={1}>
           <Sidebar />
-          <Box flexDirection="column" flexGrow={1} paddingY={0}>
+          <Box flexDirection="column" flexGrow={1}>
             <ActivityStream />
             <RendererSwitch onAction={handleRendererAction} />
           </Box>
@@ -436,6 +462,9 @@ export const App: React.FC = () => {
     </AppStateContext.Provider>
   );
 };
+
+const cleanLlmResponse = (text: string): string =>
+  text.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, '').trim();
 
 const mapRunToNode = (run: unknown): WorkspaceNode | null => {
   const r = run as { routed?: { intent?: string }; result?: unknown; session?: { id?: string } };

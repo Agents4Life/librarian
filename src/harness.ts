@@ -41,7 +41,7 @@ const reflect = (summary: string): AgentStep => ({
   message: summary,
 });
 
-const buildAskPrompt = (input: string, context: string) =>
+const buildAskPrompt = (input: string, context: string, vaultName?: string) =>
   `Eres Librarian, el bibliotecario de un vault de Obsidian. Respondé en el idioma del usuario, de forma breve y útil.
 
 ## Contexto del vault:
@@ -51,7 +51,10 @@ ${context}
 - Respondé basándote en la información del vault cuando sea relevante
 - Si no encontrás información, decilo honestamente
 - No inventas información
-- Cita las fuentes cuando uses contenido del vault (nombre de la página)`;
+- Cita las fuentes cuando uses contenido del vault (nombre de la página)
+- Si el usuario pide un enlace a una página de Obsidian, generá el link en formato: obsidian://open?vault=${vaultName ?? 'vault'}&file=<ruta-relativa-sin-extensión>
+  Ejemplo: para "wiki/conceptos/Agentes de IA.md" → obsidian://open?vault=${vaultName ?? 'vault'}&file=wiki%2Fconceptos%2FAgentes%20de%20IA
+- Codificá los espacios como %20 y las / como %2F en el enlace`;
 
 export const runLibrarian = async (
   input: string,
@@ -160,7 +163,7 @@ export const runLibrarian = async (
         if (searchResult.results.length > 0) {
           context = searchResult.results
             .slice(0, 5)
-            .map((r) => `- **${path.basename(r.file, ".md")}**: ${r.snippet?.slice(0, 150) ?? ""}`)
+            .map((r) => `- **${r.file}**: ${r.snippet?.slice(0, 150) ?? ""}`)
             .join("\n");
         }
       } catch {
@@ -168,8 +171,9 @@ export const runLibrarian = async (
       }
 
       steps.push({ kind: "act", message: "Responder consulta con GLM", tool: "llm.chat" });
+      const vaultName = path.basename(vaultPath);
       result = await llmClient.chat([
-        { role: "system", content: buildAskPrompt(input, context || "Sin contexto disponible.") },
+        { role: "system", content: buildAskPrompt(input, context || "Sin contexto disponible.", vaultName) },
         { role: "user", content: input },
       ]);
       break;

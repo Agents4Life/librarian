@@ -4,18 +4,10 @@ import { theme } from '../theme.js';
 import { useAppState, type WorkspaceNode } from '../state.js';
 
 const navItems = [
-  { label: 'Help', nodeType: 'help' },
-  { label: 'Chat', nodeType: 'chat' },
-  { label: 'Inbox', nodeType: 'proposal-inbox' },
-  { label: 'Health', nodeType: 'graph-health' },
-  { label: 'Activity', nodeType: 'activity' },
-  { label: 'Search', nodeType: 'search' },
-  { label: 'Status', nodeType: 'status' },
-  { label: 'Review', nodeType: 'review' },
-  { label: 'Graph', nodeType: 'graph' },
-  { label: 'Process', nodeType: 'process' },
-  { label: 'Orphans', nodeType: 'orphans' },
-  { label: 'Stale', nodeType: 'stale' },
+  { label: 'Chat', nodeType: 'chat', key: '1' },
+  { label: 'Inbox', nodeType: 'proposal-inbox', key: '2' },
+  { label: 'Health', nodeType: 'graph-health', key: '3' },
+  { label: 'Help', nodeType: 'help', key: '4' },
 ];
 
 const getNodeLabel = (node: WorkspaceNode): string => {
@@ -23,9 +15,8 @@ const getNodeLabel = (node: WorkspaceNode): string => {
     case 'help': return 'Help';
     case 'chat': return 'Chat';
     case 'proposal-inbox': return 'Inbox';
-    case 'proposal-detail': return 'Proposal';
-    case 'search': return `Search: ${node.query}`;
-    case 'review': return 'Review';
+    case 'proposal-detail': return 'Detail';
+    case 'search': return `🔍 ${node.query?.slice(0, 10)}`;
     case 'status': return 'Status';
     case 'graph': return 'Graph';
     case 'process': return 'Process';
@@ -33,63 +24,43 @@ const getNodeLabel = (node: WorkspaceNode): string => {
     case 'stale': return 'Stale';
     case 'graph-health': return 'Health';
     case 'activity': return 'Activity';
+    case 'review': return 'Review';
   }
 };
 
 export const Sidebar: React.FC = () => {
-  const { state } = useAppState();
+  const { state, dispatch } = useAppState();
 
   const activeNode = state.workspace.find((n) => n.id === state.activeNodeId);
   const activeType = activeNode?.type;
 
-  const hasNodeType = (type: string) => state.workspace.some((n) => n.type === type);
+  const dynamicNodes = state.workspace.filter(
+    (n) => !navItems.some((t) => t.nodeType === n.type) && n.id !== state.activeNodeId
+  ).slice(-3);
 
   return (
-    <Box flexDirection="column" width={16} borderStyle="single" borderRight={true} borderLeft={false} borderTop={false} borderBottom={false} borderColor={theme.borderSubtle} paddingX={1}>
+    <Box flexDirection="column" width={14} borderStyle="single" borderRight={true} borderLeft={false} borderTop={false} borderBottom={false} borderColor={theme.borderSubtle} paddingX={1}>
       {navItems.map((item) => {
         const isActive = item.nodeType === activeType;
-        const exists = hasNodeType(item.nodeType);
-        const icon = isActive ? theme.primary : exists ? theme.muted : theme.borderSubtle;
-
         return (
           <Box key={item.nodeType}>
-            <Text color={icon}>{isActive ? '◉' : exists ? '○' : '·'}</Text>
-            <Text color={isActive ? theme.primary : theme.muted}> {item.label}</Text>
+            <Text color={isActive ? theme.primary : theme.muted}>
+              {isActive ? '◉' : `${item.key}`}
+            </Text>
+            <Text color={isActive ? theme.primary : theme.muted}>
+              {' '}{item.label}
+            </Text>
           </Box>
         );
       })}
-
-      <Box marginTop={1}>
-        <Text color={theme.borderSubtle}>{'─'.repeat(14)}</Text>
-      </Box>
-
-      <Text color={theme.muted} bold>Recent</Text>
-      {state.recentItems.slice(0, 5).map((item) => {
-        const name = item.split('/').pop() ?? item;
-
+      {dynamicNodes.map((node) => {
+        const isActive = node.id === state.activeNodeId;
         return (
-          <Text key={item} color={theme.muted}> · {name.length > 12 ? name.slice(0, 12) + '…' : name}</Text>
+          <Text key={node.id} color={isActive ? theme.primary : theme.muted}>
+            {isActive ? '▶' : ' '} {getNodeLabel(node)}
+          </Text>
         );
       })}
-      {state.recentItems.length === 0 && <Text dimColor> · (empty)</Text>}
-
-      {state.workspace.length > 1 && (
-        <>
-          <Box marginTop={1}>
-            <Text color={theme.borderSubtle}>{'─'.repeat(14)}</Text>
-          </Box>
-          <Text color={theme.muted} bold>History</Text>
-          {state.workspace.slice(-5).reverse().map((node) => {
-            const isActive = node.id === state.activeNodeId;
-
-            return (
-              <Text key={node.id} color={isActive ? theme.primary : theme.muted}>
-                {isActive ? '▶' : ' '} {getNodeLabel(node)}
-              </Text>
-            );
-          })}
-        </>
-      )}
     </Box>
   );
 };

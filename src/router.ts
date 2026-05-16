@@ -8,7 +8,7 @@ const patterns: Array<[RegExp, RoutedIntent]> = [
   [/incomplet|vac[ií]a/i, { intent: 'incomplete-notes', confidence: 0.85, tool: 'frontmatter' }],
   [/90 d[ií]as|stale|sin tocar/i, { intent: 'stale-notes', confidence: 0.85, tool: 'frontmatter' }],
   [/hu[eé]rfana|orphan/i, { intent: 'orphan-notes', confidence: 0.85, tool: 'frontmatter' }],
-  [/link|conexi|grafo/i, { intent: 'connections', confidence: 0.8, tool: 'wikilinks' }],
+  [/conexi|grafo|mapa de conexiones/i, { intent: 'connections', confidence: 0.8, tool: 'wikilinks' }],
   [/ask|pregunta|consulta/i, { intent: 'ask', confidence: 0.95 }],
 ];
 
