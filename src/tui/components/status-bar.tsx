@@ -13,14 +13,15 @@ export const getIndexStatusLabel = (status: string): string => {
   return labels[status] ?? 'sin indice';
 };
 
-export const getLlmStatusLabel = (status: string): string => {
+export const getLlmStatusLabel = (status: string, model?: string): string => {
+  if (status === 'ready' && model) return `LLM: ${model}`;
   const labels: Record<string, string> = {
-    ready: 'IA lista',
+    ready: 'LLM listo',
     'no-model': 'falta modelo IA',
-    down: 'IA sin conexion',
-    checking: 'revisando IA',
+    down: 'LLM desconectado',
+    checking: 'conectando...',
   };
-  return labels[status] ?? 'revisando IA';
+  return labels[status] ?? 'conectando...';
 };
 
 export const StatusBar: React.FC = () => {
@@ -67,7 +68,7 @@ export const StatusBar: React.FC = () => {
         : <Text dimColor>sin pendientes</Text>}
       {h && <><Text dimColor>│</Text><Text color={h.color}>{h.icon}</Text></>}
       <Text dimColor>│</Text>
-      <Text color={ollama.color}>{ollama.icon} {getLlmStatusLabel(state.ollamaStatus)}</Text>
+      <Text color={ollama.color}>{ollama.icon} {getLlmStatusLabel(state.ollamaStatus, state.ollamaModel || undefined)}</Text>
     </Box>
   );
 };

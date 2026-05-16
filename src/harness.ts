@@ -48,13 +48,16 @@ const buildAskPrompt = (input: string, context: string, vaultName?: string) =>
 ${context}
 
 ## Reglas:
+- Respondé SIEMPRE en texto plano y amigable, nunca en JSON ni formato técnico
 - Respondé basándote en la información del vault cuando sea relevante
 - Si no encontrás información, decilo honestamente
 - No inventas información
 - Cita las fuentes cuando uses contenido del vault (nombre de la página)
 - Si el usuario pide un enlace a una página de Obsidian, generá el link en formato: obsidian://open?vault=${vaultName ?? 'vault'}&file=<ruta-relativa-sin-extensión>
   Ejemplo: para "wiki/conceptos/Agentes de IA.md" → obsidian://open?vault=${vaultName ?? 'vault'}&file=wiki%2Fconceptos%2FAgentes%20de%20IA
-- Codificá los espacios como %20 y las / como %2F en el enlace`;
+- Codificá los espacios como %20 y las / como %2F en el enlace
+- Si encontrás páginas relacionadas, listalas de forma clara: nombre de la página y un resumen corto
+- Usá un tono conversacional, como si hablaras con alguien que no es programador`;
 
 export const runLibrarian = async (
   input: string,

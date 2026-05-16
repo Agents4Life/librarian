@@ -84,6 +84,7 @@ export type FocusedPane = 'composer' | 'navigation';
 export interface AppState {
   vaultPath: string;
   ollamaStatus: 'ready' | 'no-model' | 'down' | 'checking';
+  ollamaModel: string;
   indexStatus: IndexCacheStatus;
 
   workspace: WorkspaceNode[];
@@ -102,7 +103,7 @@ export interface AppState {
 
 export type AppAction =
   | { type: 'SET_VAULT_PATH'; vaultPath: string }
-  | { type: 'SET_OLLAMA_STATUS'; status: 'ready' | 'no-model' | 'down' | 'checking' }
+  | { type: 'SET_LLM_STATUS'; status: 'ready' | 'no-model' | 'down' | 'checking'; model?: string }
   | { type: 'SET_INDEX_STATUS'; status: IndexCacheStatus }
   | { type: 'ADD_NODE'; node: WorkspaceNode }
   | { type: 'UPDATE_NODE'; id: string; patch: Partial<WorkspaceNode> }
@@ -140,8 +141,8 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'SET_VAULT_PATH':
       return { ...state, vaultPath: action.vaultPath };
 
-    case 'SET_OLLAMA_STATUS':
-      return { ...state, ollamaStatus: action.status };
+    case 'SET_LLM_STATUS':
+      return { ...state, ollamaStatus: action.status, ...(action.model ? { ollamaModel: action.model } : {}) };
 
     case 'SET_INDEX_STATUS':
       return { ...state, indexStatus: action.status };
@@ -288,6 +289,7 @@ export const createInitialState = (vaultPath: string): AppState => {
   return {
     vaultPath,
     ollamaStatus: 'checking',
+    ollamaModel: '',
     indexStatus: 'missing',
     workspace: [helpNode, chatNode],
     activeNodeId: chatNodeId,

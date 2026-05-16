@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useReducer } from 'react';
 import { Box, Text, useInput, useStdout } from 'ink';
+import path from 'node:path';
 
 import { AppStateContext, appReducer, createInitialState, type WorkspaceNode } from './state.js';
 import { uiEventBus } from './event-bus.js';
@@ -73,9 +74,9 @@ export const App: React.FC = () => {
     try {
       const llm = createLlmClient();
       const health = await llm.healthcheck();
-      dispatch({ type: 'SET_OLLAMA_STATUS', status: health.status });
+      dispatch({ type: 'SET_LLM_STATUS', status: health.status, model: health.model });
     } catch {
-      dispatch({ type: 'SET_OLLAMA_STATUS', status: 'down' });
+      dispatch({ type: 'SET_LLM_STATUS', status: 'down' });
     }
   }, []);
 
@@ -108,33 +109,33 @@ export const App: React.FC = () => {
           dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '◉', color: theme.primary, message: event.message } });
           break;
         case 'agent:done':
-          dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `Completed: ${event.nodeId}` } });
+          dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: 'Listo' } });
           break;
         case 'agent:error':
           dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✗', color: theme.error, message: event.error } });
           break;
         case 'wiki:searched':
-          dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '→', color: theme.primary, message: `Searched "${event.query}": ${event.count} results` } });
+          dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '→', color: theme.primary, message: `Busqueda: ${event.count} resultado${event.count !== 1 ? 's' : ''}` } });
           break;
         case 'notification':
           const colors = { info: theme.primary, warn: theme.warning, error: theme.error };
           dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: event.level === 'error' ? '✗' : '◉', color: colors[event.level], message: event.message } });
           break;
         case 'review:approved':
-          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'review:approved', message: `Approved: ${event.id.slice(0, 20)}...`, createdAt: Date.now(), meta: { id: event.id } } });
+          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'review:approved', message: 'Propuesta aprobada', createdAt: Date.now(), meta: { id: event.id } } });
           break;
         case 'review:rejected':
-          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'review:rejected', message: `Rejected: ${event.id.slice(0, 20)}...`, createdAt: Date.now(), meta: { id: event.id } } });
+          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'review:rejected', message: 'Propuesta rechazada', createdAt: Date.now(), meta: { id: event.id } } });
           break;
         case 'proposal:applied':
-          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'proposal:applied', message: `Applied: ${event.target}`, createdAt: Date.now(), meta: { id: event.id, target: event.target } } });
+          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'proposal:applied', message: `Cambios aplicados en ${event.target}`, createdAt: Date.now(), meta: { id: event.id, target: event.target } } });
           break;
         case 'pipeline:processed':
-          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'pipeline:processed', message: `Processed: ${event.source} → ${event.target}`, createdAt: Date.now() } });
+          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'pipeline:processed', message: `Procesado: ${event.source} → ${event.target}`, createdAt: Date.now() } });
           break;
         case 'index:rebuilt':
           dispatch({ type: 'SET_LAST_INDEX_AT', timestamp: Date.now() });
-          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'index:rebuilt', message: `Index rebuilt: ${event.noteCount} notes`, createdAt: Date.now() } });
+          dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'index:rebuilt', message: `Indice reconstruido: ${event.noteCount} notas`, createdAt: Date.now() } });
           break;
       }
     });
@@ -198,7 +199,7 @@ export const App: React.FC = () => {
         const service = new ReviewService(store, vp);
         await service.approve(proposalId);
         uiEventBus.emit({ type: 'review:approved', id: proposalId });
-        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `Approved: ${proposalId.slice(0, 20)}...` } });
+        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: 'Propuesta aprobada' } });
 
         const inboxNode = state.workspace.find((n) => n.type === 'proposal-inbox');
         await refreshAllStatusInbox(service, inboxNode, dispatch);
@@ -217,7 +218,7 @@ export const App: React.FC = () => {
         const service = new ReviewService(store, vp);
         await service.reject(proposalId);
         uiEventBus.emit({ type: 'review:rejected', id: proposalId });
-        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✗', color: theme.error, message: `Rejected: ${proposalId.slice(0, 20)}...` } });
+        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✗', color: theme.error, message: 'Propuesta rechazada' } });
 
         const inboxNode = state.workspace.find((n) => n.type === 'proposal-inbox');
         await refreshAllStatusInbox(service, inboxNode, dispatch);
@@ -235,7 +236,7 @@ export const App: React.FC = () => {
         const store = new FileProposalStore(vp);
         const service = new ReviewService(store, vp);
         const updated = await service.retry(proposalId);
-        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '↻', color: theme.primary, message: `Retried: ${proposalId.slice(0, 20)}... → ${updated.status}` } });
+        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '↻', color: theme.primary, message: `Reintento: ${updated.status}` } });
         dispatch({ type: 'PUSH_ACTIVITY_EVENT', event: { id: crypto.randomUUID(), type: 'proposal:applied' as const, message: `Retry ${updated.status}: ${updated.proposal.target}`, createdAt: Date.now(), meta: { id: updated.id, target: updated.proposal.target } } });
 
         const inboxNode = state.workspace.find((n) => n.type === 'proposal-inbox');
@@ -254,7 +255,7 @@ export const App: React.FC = () => {
         const store = new FileProposalStore(vp);
         const service = new ReviewService(store, vp);
         await service.reset(proposalId);
-        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '↺', color: theme.warning, message: `Reset: ${proposalId.slice(0, 20)}... → pending` } });
+        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '↺', color: theme.warning, message: 'Propuesta restablecida' } });
 
         const inboxNode = state.workspace.find((n) => n.type === 'proposal-inbox');
         await refreshAllStatusInbox(service, inboxNode, dispatch);
@@ -382,12 +383,7 @@ export const App: React.FC = () => {
 
       try {
         const run = await runLibrarian(parsed.args, state.vaultPath);
-        const runResult = run.result as Record<string, unknown> | null;
-        const responseText = typeof runResult?.content === 'string'
-          ? cleanLlmResponse(runResult.content)
-          : runResult?.message
-            ? String(runResult.message)
-            : JSON.stringify(runResult ?? {});
+        const responseText = formatRunResult(run.result, state.vaultPath);
         const assistantMsg: ChatMessage = { role: 'assistant', content: responseText };
 
         dispatch({
@@ -567,4 +563,78 @@ const mapRunToNode = (run: unknown): WorkspaceNode | null => {
     default:
       return null;
   }
+};
+
+export const formatRunResult = (raw: unknown, vaultPath?: string): string => {
+  const result = raw as Record<string, unknown> | null;
+
+  const fileLink = (filePath: string): string => {
+    if (!vaultPath) return filePath;
+    return path.join(vaultPath, filePath);
+  };
+
+  if (typeof result?.content === 'string') {
+    return cleanLlmResponse(result.content);
+  }
+
+  if (result?.message && typeof result.message === 'string') {
+    let out = result.message;
+    if (result.hint) out += `\n💡 ${result.hint}`;
+    if (Array.isArray(result.preview) && result.preview.length > 0) {
+      out += '\nArchivos: ' + result.preview.slice(0, 5).join(', ');
+    }
+    return out;
+  }
+
+  if (Array.isArray(result?.results)) {
+    const results = result.results as Array<Record<string, unknown>>;
+    if (results.length === 0) return 'No se encontraron resultados.';
+    const lines = results.map((r) => {
+      const file = String(r.file ?? '');
+      const name = file.split('/').pop()?.replace('.md', '') ?? file ?? '?';
+      const pct = typeof r.score === 'number' ? ` (${Math.round(r.score * 100)}%)` : '';
+      const snip = r.snippet ? ` — ${String(r.snippet).slice(0, 80)}` : '';
+      const link = fileLink(file);
+      return `  → ${name}${pct}${snip}\n    ${link}`;
+    });
+    return `Se encontraron ${results.length} resultado${results.length > 1 ? 's' : ''}:\n${lines.join('\n')}`;
+  }
+
+  if (result?.stats && typeof result.stats === 'object') {
+    const stats = result.stats as Record<string, number>;
+    const parts: string[] = [];
+    if (stats.total_files != null) parts.push(`${stats.total_files} archivos`);
+    if ('wiki_pages' in stats) parts.push(`${stats.wiki_pages} paginas wiki`);
+    if ('raw_files' in stats) parts.push(`${stats.raw_files} archivos sin procesar`);
+    return parts.length > 0 ? `Estado del vault: ${parts.join(', ')}.` : JSON.stringify(result);
+  }
+
+  if (result?.total_nodes != null) {
+    const parts: string[] = [];
+    if (result.total_nodes != null) parts.push(`${result.total_nodes} nodos`);
+    if (result.total_edges != null) parts.push(`${result.total_edges} conexiones`);
+    if (result.avg_connections != null) parts.push(`${Number(result.avg_connections).toFixed(1)} conexiones en promedio`);
+    if (result.orphans != null) parts.push(`${result.orphans} paginas huerfanas`);
+    if (Array.isArray(result.most_connected) && result.most_connected.length > 0) {
+      const top = (result.most_connected as Array<Record<string, unknown>>).slice(0, 5);
+      const topList = top.map((n) => `${String(n.file ?? '').split('/').pop()?.replace('.md', '')} (${n.connections})`).join(', ');
+      parts.push(`mas conectadas: ${topList}`);
+    }
+    return parts.length > 0 ? `Grafo: ${parts.join(', ')}.` : JSON.stringify(result);
+  }
+
+  if (Array.isArray(result) && result.length > 0 && (result[0] as Record<string, unknown>)?.file != null) {
+    const lines = result.map((r: Record<string, unknown>) => {
+      const file = String(r.file ?? '');
+      const name = file.split('/').pop()?.replace('.md', '') ?? '?';
+      return `  → ${name}\n    ${fileLink(file)}`;
+    });
+    return `${result.length} elementos encontrados:\n${lines.join('\n')}`;
+  }
+
+  if (result && typeof result === 'object' && Object.keys(result).length === 0) {
+    return 'No se encontraron resultados.';
+  }
+
+  return JSON.stringify(result ?? {});
 };

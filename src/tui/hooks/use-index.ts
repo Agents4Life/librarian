@@ -12,9 +12,9 @@ export const useIndex = (
     try {
       const llm = createLlmClient();
       const health = await llm.healthcheck();
-      dispatch({ type: 'SET_OLLAMA_STATUS', status: health.status });
+      dispatch({ type: 'SET_LLM_STATUS', status: health.status });
     } catch {
-      dispatch({ type: 'SET_OLLAMA_STATUS', status: 'down' });
+      dispatch({ type: 'SET_LLM_STATUS', status: 'down' });
     }
   }, [dispatch]);
 
