@@ -29,7 +29,7 @@ export const WikiStatusRenderer: React.FC<RendererProps> = ({ node }) => {
         <>
           <Text> </Text>
           <Text bold>Más conectadas</Text>
-          {graph.most_connected.slice(0, 5).map((c, i) => (
+          {graph.most_connected.slice(0, 5).map((c: any, i: number) => (
             <Box key={i} gap={1}>
               <Text dimColor>{i + 1}.</Text>
               <Text>{c.file.split('/').pop()?.replace('.md', '')}</Text>

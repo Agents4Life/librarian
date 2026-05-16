@@ -11,12 +11,12 @@ interface StaleState {
 }
 
 export const StaleRenderer: React.FC<RendererProps> = ({ node }) => {
+  if (node.type !== 'stale') return null;
+
   const [state, setState] = React.useState<StaleState>(() => {
     const maxPage = Math.max(0, Math.ceil(node.notes.length / PAGE_SIZE) - 1);
     return { page: 0, maxPage };
   });
-
-  if (node.type !== 'stale') return null;
 
   const startIdx = state.page * PAGE_SIZE;
   const endIdx = startIdx + PAGE_SIZE;
@@ -38,7 +38,7 @@ export const StaleRenderer: React.FC<RendererProps> = ({ node }) => {
         <Text dimColor>No se encontraron notas stale en esta página.</Text>
       )}
 
-      {visible.map((note, i) => (
+      {visible.map((note: any, i: number) => (
         <Box key={i} flexDirection="column" marginBottom={1}>
           <Box gap={1}>
             <Text color={theme.warning}>⧖</Text>

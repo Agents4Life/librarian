@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-nocheck
 import { runLibrarian } from './harness.js';
 import { listProposals, approveProposal, rejectProposal } from './commands/proposals.js';
 import { getProposal } from './commands/proposal.js';

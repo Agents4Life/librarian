@@ -1,11 +1,10 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import { useInput } from 'ink';
-import { theme } from '../theme.js';
-import { useAppState } from '../state.js';
-import type { RendererProps } from '../renderers/registry.js';
-import { ProposalPreview } from '../components/proposal-preview.js';
-import { Clickable } from '../components/mouse-support.js';
+import React, { useCallback } from "react";
+import { Box, Text } from "ink";
+import { useInput } from "ink";
+import { theme } from "../theme.js";
+import { useAppState } from "../state.js";
+import type { RendererProps } from "./registry.js";
+import { ProposalPreview } from "../components/proposal-preview.js";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: theme.warning,
@@ -19,87 +18,38 @@ const STATUS_COLORS: Record<string, string> = {
 
 const statusColor = (status: string) => STATUS_COLORS[status] ?? theme.primary;
 
-interface ProposalDetailState {
-  confirming: null | 'approve' | 'reject';
-}
-
 export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction }) => {
   const { state, dispatch } = useAppState();
-  const [detailState, setDetailState] = React.useState<ProposalDetailState>({ confirming: null });
 
-  useInput((input: string, key: any) => {
+  useInput(useCallback((input, key) => {
     if (node.type !== "proposal-detail") return;
-    if (state.focusedPane === "composer") return;
+    if (state.composerValue !== "") return;
     const p = node.proposal;
 
-    // If we're in confirmation mode
-    if (detailState.confirming) {
-      if (input === "y") {
-        // Execute confirmed action
-        onAction(`${detailState.confirming}:${p.id}`);
-        setDetailState({ confirming: null });
-      } else if (input === "n" || key.escape) {
-        // Cancel confirmation
-        setDetailState({ confirming: null });
-      }
-      return;
-    }
-
-    // Normal mode
     if (input === "a") {
-      setDetailState({ confirming: 'approve' });
+      onAction(`approve:${p.id}`);
     } else if (input === "r") {
-      setDetailState({ confirming: 'reject' });
+      onAction(`reject:${p.id}`);
     } else if (input === "t" && (p.status === "failed" || p.status === "rolled_back")) {
       onAction(`retry:${p.id}`);
     } else if (input === "x" && (p.status === "failed" || p.status === "rolled_back")) {
       onAction(`reset:${p.id}`);
     } else if (input === "p") {
       dispatch({ type: "TOGGLE_PREVIEW", nodeId: node.id });
-    } else if (key.escape) {
+    } else if (input === "q" || key.escape) {
       onAction("back-to-inbox");
     }
-  }, [node, state.focusedPane, dispatch, onAction, detailState.confirming]);
+  }, [node, state.composerValue, dispatch, onAction]));
 
   if (node.type !== "proposal-detail") return null;
 
   const p = node.proposal;
   const canRetry = p.status === "failed" || p.status === "rolled_back";
 
-  const handleQuickAction = (action: 'approve' | 'reject') => {
-    setDetailState({ confirming: action });
-  };
-
   return (
     <Box flexDirection="column" paddingX={1}>
       <Text bold color={theme.primary}>Proposal Detail</Text>
       <Text> </Text>
-
-      {/* Confirmation overlay */}
-      {detailState.confirming && (
-        <Box flexDirection="column" borderStyle="double" padding={1} marginBottom={1} borderColor={theme.warning}>
-          <Text bold color={theme.warning}>
-            ¿Estás seguro que querés {detailState.confirming === 'approve' ? 'APPROVAR' : 'RECHAZAR'} esta propuesta?
-          </Text>
-          <Text> </Text>
-          <Text dimColor>
-            {p.sourcePath} → {p.proposal.target}
-          </Text>
-          <Text> </Text>
-          
-          <Box gap={2}>
-            <Clickable onClick={() => onAction(`${detailState.confirming}:${p.id}`)}>
-              <Text color={theme.success} bold>y</Text>
-              <Text> Sí, {detailState.confirming === 'approve' ? 'aprobar' : 'rechazar'}</Text>
-            </Clickable>
-            
-            <Clickable onClick={() => setDetailState({ confirming: null })}>
-              <Text color={theme.error} bold>n</Text>
-              <Text> Cancelar</Text>
-            </Clickable>
-          </Box>
-        </Box>
-      )}
 
       <Box flexDirection="row" gap={2}>
         <Text bold>Status:</Text>
@@ -157,7 +107,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
       {p.diagnostics.warnings.length > 0 && (
         <Box flexDirection="column" marginTop={1}>
           <Text bold color={theme.warning}>Warnings</Text>
-          {p.diagnostics.warnings.map((w: any, i: number) => (
+          {p.diagnostics.warnings.map((w, i) => (
             <Text key={i} dimColor>  - {w}</Text>
           ))}
         </Box>
@@ -166,7 +116,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
       {p.diagnostics.duplicateCandidates.length > 0 && (
         <Box flexDirection="column" marginTop={1}>
           <Text bold color={theme.warning}>Duplicate candidates</Text>
-          {p.diagnostics.duplicateCandidates.map((d: any, i: number) => (
+          {p.diagnostics.duplicateCandidates.map((d, i) => (
             <Text key={i} dimColor>  - {d}</Text>
           ))}
         </Box>
@@ -175,7 +125,7 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
       {p.transitions.length > 0 && (
         <Box flexDirection="column" marginTop={1}>
           <Text bold>Transition History</Text>
-          {p.transitions.map((t: any, i: number) => (
+          {p.transitions.map((t, i) => (
             <Box key={i} flexDirection="row" gap={1}>
               <Text dimColor>{new Date(t.at).toLocaleString()}</Text>
               <Text color={statusColor(t.from)}>{t.from}</Text>
@@ -195,57 +145,10 @@ export const ProposalDetailRenderer: React.FC<RendererProps> = ({ node, onAction
         />
       )}
 
-      {/* Action buttons with click support */}
-      <Box flexDirection="row" gap={3} marginTop={1}>
-        <Clickable
-          onClick={() => handleQuickAction('approve')}
-          disabled={detailState.confirming !== null}
-          hoverText="approve this proposal"
-        >
-          <Text color={theme.success} bold>✓ Approve</Text>
-        </Clickable>
-        
-        <Clickable
-          onClick={() => handleQuickAction('reject')}
-          disabled={detailState.confirming !== null}
-          hoverText="reject this proposal"
-        >
-          <Text color={theme.error} bold>✗ Reject</Text>
-        </Clickable>
-        
-        {canRetry && (
-          <Clickable
-            onClick={() => onAction(`retry:${p.id}`)}
-            hoverText="retry failed proposal"
-          >
-            <Text color={theme.warning} bold>↻ Retry</Text>
-          </Clickable>
-        )}
-        
-        {canRetry && (
-          <Clickable
-            onClick={() => onAction(`reset:${p.id}`)}
-            hoverText="reset to pending"
-          >
-            <Text color={theme.primary} bold>↺ Reset</Text>
-          </Clickable>
-        )}
-        
-        <Clickable
-          onClick={() => dispatch({ type: "TOGGLE_PREVIEW", nodeId: node.id })}
-          hoverText={node.showPreview ? "hide preview" : "show preview"}
-        >
-          <Text color={theme.primary} bold>
-            {node.showPreview ? "👁 Hide" : "👁 Show"} Preview
-          </Text>
-        </Clickable>
-        
-        <Clickable
-          onClick={() => onAction("back-to-inbox")}
-          hoverText="back to inbox"
-        >
-          <Text color={theme.muted} bold>← Back</Text>
-        </Clickable>
+      <Box marginTop={1}>
+        <Text dimColor>
+          a approve{" · "}r reject{canRetry ? " · t retry · x reset" : ""}{" · "}p {node.showPreview ? "hide" : "show"} preview{" · "}q back
+        </Text>
       </Box>
     </Box>
   );

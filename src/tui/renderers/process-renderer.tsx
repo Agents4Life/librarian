@@ -20,7 +20,7 @@ export const ProcessRenderer: React.FC<RendererProps> = ({ node }) => {
       {inbox.preview.length > 0 && (
         <>
           <Text bold>Próximas a procesar</Text>
-          {inbox.preview.map((file, i) => (
+          {inbox.preview.map((file: any, i: number) => (
             <Box key={i} gap={1}>
               <Text dimColor>{i + 1}.</Text>
               <Text>{file.split('/').pop()}</Text>

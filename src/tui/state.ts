@@ -1,4 +1,5 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useReducer } from 'react';
+import React from 'react';
 import { randomUUID } from 'node:crypto';
 
 import type { ChatMessage } from './types.js';
@@ -25,6 +26,16 @@ export interface GraphStats {
   orphans: number;
 }
 
+export interface Review {
+  id: string;
+  type: 'merge' | 'create' | 'expand';
+  source: string;
+  target: string;
+  diff_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  preview?: string;
+}
+
 export interface OrphanNote {
   file: string;
   has_outgoing: boolean;
@@ -46,7 +57,7 @@ export interface InboxSummary {
 export type WorkspaceNode =
   | { type: 'chat'; id: string; messages: ChatMessage[]; createdAt: number }
   | { type: 'search'; id: string; query: string; results: SearchResult[]; createdAt: number }
-
+  | { type: 'review'; id: string; reviews: Review[]; activeIndex: number; createdAt: number }
   | { type: 'status'; id: string; stats: WikiStats; graph: GraphStats; createdAt: number }
   | { type: 'graph'; id: string; stats: GraphStats; createdAt: number }
   | { type: 'process'; id: string; inbox: InboxSummary; createdAt: number }
@@ -303,4 +314,17 @@ export const useAppState = () => {
   const ctx = useContext(AppStateContext);
   if (!ctx) throw new Error('useAppState must be used within AppStateContext');
   return ctx;
+};
+
+export const AppStateProvider: React.FC<{
+  children: React.ReactNode;
+  vaultPath: string;
+}> = ({ children, vaultPath }) => {
+  const [state, dispatch] = useReducer(appReducer, createInitialState(vaultPath));
+
+  return React.createElement(
+    AppStateContext.Provider,
+    { value: { state, dispatch } },
+    children
+  );
 };

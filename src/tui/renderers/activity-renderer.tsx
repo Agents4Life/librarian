@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import { theme } from '../theme.js';
 import type { RendererProps } from './registry.js';
-import type { WorkspaceNode } from './types.js';
 
 const PAGE_SIZE = 15;
 
@@ -29,12 +28,12 @@ const formatTimeAgo = (timestamp: number): string => {
 };
 
 export const ActivityRenderer: React.FC<RendererProps> = ({ node }) => {
+  if (node.type !== 'activity') return null;
+
   const [state, setState] = React.useState<ActivityState>(() => {
     const maxPage = Math.max(0, Math.ceil(node.events.length / PAGE_SIZE) - 1);
     return { page: 0, maxPage };
   });
-
-  if (node.type !== 'activity') return null;
 
   const startIdx = state.page * PAGE_SIZE;
   const endIdx = startIdx + PAGE_SIZE;

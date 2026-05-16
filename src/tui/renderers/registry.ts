@@ -1,25 +1,19 @@
-import { ChatRenderer } from './renderers/chat-renderer.js';
-import { SearchRenderer } from './renderers/search-renderer.js';
-import { StatusRenderer } from './renderers/wiki-status-renderer.js';
-import { GraphRenderer } from './renderers/graph-renderer.js';
-import { ProcessRenderer } from './renderers/process-renderer.js';
-import { OrphansRenderer } from './renderers/orphans-renderer.js';
-import { StaleRenderer } from './renderers/stale-renderer.js';
-import { ProposalInboxRenderer } from './renderers/proposal-inbox-renderer.js';
-import { ProposalDetailRenderer } from './renderers/proposal-detail-renderer.js';
-import { GraphHealthRenderer } from './renderers/graph-health-renderer.js';
-import { ActivityRenderer } from './renderers/activity-renderer.js';
-import { HelpRenderer } from './renderers/help-renderer.js';
+import React from 'react';
+import type { WorkspaceNode } from '../state.js';
 
-export const registerRenderers = () => {
-  // Register all renderers here to avoid circular imports
-  // In a real implementation, you'd dynamically load these
-  
-  // Note: In a production app, you'd want to:
-  // 1. Lazy load renderers on demand
-  // 2. Handle missing renderers gracefully
-  // 3. Potentially support plugin renderers
-  
-  // For now, we'll just note that renderers are available
-  // The actual registration happens in app.tsx
+export type RendererProps = {
+  node: WorkspaceNode;
+  onAction: (action: string) => void;
+};
+
+export type RendererComponent = React.FC<RendererProps>;
+
+const registry = new Map<string, RendererComponent>();
+
+export const registerRenderer = (type: string, component: RendererComponent) => {
+  registry.set(type, component);
+};
+
+export const getRenderer = (type: string): RendererComponent | undefined => {
+  return registry.get(type);
 };
