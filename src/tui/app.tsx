@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useReducer } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 
 import { AppStateContext, appReducer, createInitialState, type WorkspaceNode } from './state.js';
 import { uiEventBus } from './event-bus.js';
@@ -50,6 +50,8 @@ registerRenderer('graph-health', GraphHealthRenderer);
 registerRenderer('activity', ActivityRenderer);
 registerRenderer('help', HelpRenderer);
 
+export const getMainContentMaxHeight = (rows: number): number => Math.max(8, rows - 5);
+
 const refreshAllStatusInbox = async (service: ReviewService, inboxNode: WorkspaceNode | undefined, dispatch: React.Dispatch<import('./state.js').AppAction>) => {
   if (!inboxNode || inboxNode.type !== 'proposal-inbox') return;
   const [pending, failed, rolledBack, applying] = await Promise.all([
@@ -63,6 +65,9 @@ const refreshAllStatusInbox = async (service: ReviewService, inboxNode: Workspac
 
 export const App: React.FC = () => {
   const [state, dispatch] = useReducer(appReducer, defaultConfig.vaultPath, createInitialState);
+  const { stdout } = useStdout();
+  const rows = stdout.rows ?? 24;
+  const contentMaxHeight = getMainContentMaxHeight(rows);
 
   const checkOllama = useCallback(async () => {
     try {
@@ -470,9 +475,13 @@ export const App: React.FC = () => {
   return (
     <AppStateContext.Provider value={{ state, dispatch }}>
       <Box flexDirection="column">
-        <TabBar />
-        <ActivityStream />
-        <RendererSwitch onAction={handleRendererAction} />
+        <Box marginTop={1}>
+          <TabBar />
+        </Box>
+        <Box flexDirection="column" maxHeight={contentMaxHeight}>
+          <ActivityStream />
+          <RendererSwitch onAction={handleRendererAction} />
+        </Box>
         <Composer onSubmit={handleComposerSubmit} />
         <StatusBar />
       </Box>

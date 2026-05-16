@@ -3,11 +3,11 @@ import { Box, Text } from 'ink';
 import { theme } from '../theme.js';
 import { useAppState } from '../state.js';
 
-const TABS = [
+export const TABS = [
   { key: '1', label: 'Chat', nodeType: 'chat' },
-  { key: '2', label: 'Inbox', nodeType: 'proposal-inbox' },
-  { key: '3', label: 'Health', nodeType: 'graph-health' },
-  { key: '4', label: 'Help', nodeType: 'help' },
+  { key: '2', label: 'Revisar', nodeType: 'proposal-inbox' },
+  { key: '3', label: 'Salud', nodeType: 'graph-health' },
+  { key: '4', label: 'Ayuda', nodeType: 'help' },
 ];
 
 export const TabBar: React.FC = () => {
@@ -25,13 +25,14 @@ export const TabBar: React.FC = () => {
         const badge = tab.nodeType === 'proposal-inbox' && inboxCount > 0 ? ` ${inboxCount}` : '';
         return (
           <React.Fragment key={tab.key}>
-            <Text backgroundColor={isActive ? theme.primary : undefined} color={isActive ? 'black' : theme.muted} bold>
-              {` ${tab.key}:${tab.label}${badge} `}
+            <Text backgroundColor={isActive ? theme.primary : undefined} color={isActive ? 'black' : theme.muted} bold={isActive}>
+              {` ${tab.key} ${tab.label}${badge} `}
             </Text>
-            {i < TABS.length - 1 && <Text dimColor>│</Text>}
+            {i < TABS.length - 1 && <Text dimColor> · </Text>}
           </React.Fragment>
         );
       })}
+      <Text dimColor>   Tab cambia vista</Text>
     </Box>
   );
 };
