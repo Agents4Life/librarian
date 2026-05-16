@@ -19,7 +19,7 @@ export const Composer: React.FC<ComposerProps> = ({ onSubmit }) => {
   };
 
   return (
-    <Box paddingX={1}>
+    <Box>
       <Text bold color={theme.primary}>{'>'}</Text>
       <TextInput
         value={state.composerValue}

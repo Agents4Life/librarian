@@ -18,8 +18,8 @@ import { ProposalDetailRenderer } from './renderers/proposal-detail-renderer.js'
 import { GraphHealthRenderer } from './renderers/graph-health-renderer.js';
 import { ActivityRenderer } from './renderers/activity-renderer.js';
 import { HelpRenderer } from './renderers/help-renderer.js';
-import { Header } from './components/header.js';
-import { Sidebar } from './components/sidebar.js';
+import { StatusBar } from './components/status-bar.js';
+import { TabBar, TAB_ORDER } from './components/tab-bar.js';
 import { Composer } from './components/composer.js';
 import { ActivityStream } from './components/activity-stream.js';
 import { RendererSwitch } from './components/renderer-switch.js';
@@ -420,44 +420,61 @@ export const App: React.FC = () => {
       return;
     }
 
+    if (key.tab && state.composerValue === '') {
+      const activeNode = state.workspace.find((n) => n.id === state.activeNodeId);
+      const currentType = activeNode?.type ?? 'chat';
+      const currentIdx = TAB_ORDER.indexOf(currentType as any);
+      const nextIdx = (currentIdx + 1) % TAB_ORDER.length;
+      const nextType = TAB_ORDER[nextIdx];
+      const existing = state.workspace.find((n) => n.type === nextType);
+      if (existing) {
+        dispatch({ type: 'SET_ACTIVE_NODE', id: existing.id });
+      } else {
+        activateTab(nextType);
+      }
+      return;
+    }
+
     if (state.composerValue === '' && TAB_MAP[input]) {
       const nodeType = TAB_MAP[input];
       const existing = state.workspace.find((n) => n.type === nodeType);
       if (existing) {
         dispatch({ type: 'SET_ACTIVE_NODE', id: existing.id });
-      } else if (nodeType === 'proposal-inbox') {
-        loadProposalInbox();
-      } else if (nodeType === 'graph-health') {
-        (async () => {
-          dispatch({ type: 'SET_LOADING', loading: true });
-          try {
-            const ctx = await createIndexContext(state.vaultPath);
-            const store = new FileProposalStore(state.vaultPath);
-            const summary = await computeGraphHealth(ctx.query, store);
-            dispatch({ type: 'ADD_NODE', node: { type: 'graph-health', id: crypto.randomUUID(), summary, createdAt: Date.now() } });
-          } catch {} finally {
-            dispatch({ type: 'SET_LOADING', loading: false });
-          }
-        })();
       } else {
-        const node: WorkspaceNode = { type: nodeType as any, id: crypto.randomUUID(), createdAt: Date.now() } as any;
-        dispatch({ type: 'ADD_NODE', node });
+        activateTab(nodeType);
       }
     }
   });
 
+  const activateTab = (nodeType: string) => {
+    if (nodeType === 'proposal-inbox') {
+      loadProposalInbox();
+    } else if (nodeType === 'graph-health') {
+      (async () => {
+        dispatch({ type: 'SET_LOADING', loading: true });
+        try {
+          const ctx = await createIndexContext(state.vaultPath);
+          const store = new FileProposalStore(state.vaultPath);
+          const summary = await computeGraphHealth(ctx.query, store);
+          dispatch({ type: 'ADD_NODE', node: { type: 'graph-health', id: crypto.randomUUID(), summary, createdAt: Date.now() } });
+        } catch {} finally {
+          dispatch({ type: 'SET_LOADING', loading: false });
+        }
+      })();
+    } else {
+      const node: WorkspaceNode = { type: nodeType as any, id: crypto.randomUUID(), createdAt: Date.now() } as any;
+      dispatch({ type: 'ADD_NODE', node });
+    }
+  };
+
   return (
     <AppStateContext.Provider value={{ state, dispatch }}>
-      <Box flexDirection="column" height="100%">
-        <Header />
-        <Box flexDirection="row" flexGrow={1}>
-          <Sidebar />
-          <Box flexDirection="column" flexGrow={1}>
-            <ActivityStream />
-            <RendererSwitch onAction={handleRendererAction} />
-          </Box>
-        </Box>
+      <Box flexDirection="column">
+        <TabBar />
+        <ActivityStream />
+        <RendererSwitch onAction={handleRendererAction} />
         <Composer onSubmit={handleComposerSubmit} />
+        <StatusBar />
       </Box>
     </AppStateContext.Provider>
   );

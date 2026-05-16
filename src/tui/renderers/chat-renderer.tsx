@@ -15,7 +15,7 @@ export const ChatRenderer: React.FC<RendererProps> = ({ node }) => {
 
   if (visible.length === 0) {
     return (
-      <Box flexDirection="column" padding={1}>
+      <Box flexDirection="column">
         <Text color={theme.primary} bold>Chat con Librarian</Text>
         <Text dimColor>Escribí una pregunta o /comando para empezar.</Text>
       </Box>
@@ -23,12 +23,12 @@ export const ChatRenderer: React.FC<RendererProps> = ({ node }) => {
   }
 
   return (
-    <Box flexDirection="column" paddingX={1}>
+    <Box flexDirection="column">
       {visible.map((msg: ChatMessage, i: number) => {
         const content = clean(msg.content);
         if (msg.role === 'user') {
           return (
-            <Box key={i} flexDirection="column" marginBottom={1} borderStyle="single" borderLeft={true} borderRight={false} borderTop={false} borderBottom={false} borderColor={theme.primary} paddingLeft={1}>
+            <Box key={i} flexDirection="column" borderStyle="single" borderLeft={true} borderRight={false} borderTop={false} borderBottom={false} borderColor={theme.primary} paddingLeft={1}>
               <Text bold color={theme.primary}>Vos</Text>
               <Text wrap="wrap">{content}</Text>
             </Box>
@@ -36,7 +36,7 @@ export const ChatRenderer: React.FC<RendererProps> = ({ node }) => {
         }
 
         return (
-          <Box key={i} flexDirection="column" marginBottom={1}>
+          <Box key={i} flexDirection="column">
             <Text bold color={theme.muted}>Librarian</Text>
             <Text wrap="wrap">{content}</Text>
           </Box>

@@ -4,7 +4,7 @@ import { theme, icons } from '../theme.js';
 import { useAppState } from '../state.js';
 import type { GraphHealthStatus } from '../activity/types.js';
 
-export const Header: React.FC = () => {
+export const StatusBar: React.FC = () => {
   const { state } = useAppState();
   const vaultName = state.vaultPath.split('/').pop() ?? state.vaultPath;
 
@@ -37,7 +37,7 @@ export const Header: React.FC = () => {
   const h = healthStatus ? healthCfg[healthStatus] : null;
 
   return (
-    <Box gap={1} paddingX={1}>
+    <Box gap={1}>
       <Text bold color={theme.primary}>📚</Text>
       <Text bold>{vaultName}</Text>
       <Text dimColor>│</Text>
