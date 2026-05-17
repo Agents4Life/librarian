@@ -20,7 +20,8 @@
 - [ ] `sin indice` cuando no hay índice
 - [ ] `actualizando indice...` durante rebuild
 - [ ] `LLM: <modelo>` cuando Ollama está conectado
-- [ ] `✗ LLM desconectado` cuando Ollama no responde
+- [ ] `✗ LLM desconectado` cuando Ollama no responde (icono rojo visible)
+- [ ] LLM conectado: no se muestra estado de LLM en la barra (solo visible cuando hay problemas)
 - [ ] `falta modelo IA` cuando no hay modelo configurado
 - [ ] `por revisar: N` solo visible si hay propuestas pendientes (0 lo oculta)
 - [ ] Indicador de salud del grafo: `✓` / `⚠` / `✗`

@@ -106,6 +106,88 @@ Librarian trabaja con bases de conocimiento personales. Sé conservadora/o.
 
 Ver [SAFETY.md](SAFETY.md) para el modelo completo de seguridad.
 
+## Primer Uso — Paso a Paso
+
+1. **Instalá Librarian** (ver [Instalación](#instalación) abajo).
+
+2. **Apuntá al vault**:
+   ```bash
+   export LIBRARIAN_VAULT_PATH="/ruta/a/tu/vault/obsidian"
+   ```
+
+3. **Inicializá la capa Librarian en el vault**:
+   ```bash
+   librarian init
+   ```
+   Esto crea `raw/`, `wiki/`, `reports/`, `.librarian/` y templates. Es idempotente — podés correrlo de nuevo sin problema.
+
+4. **Construí el índice**:
+   ```bash
+   librarian index rebuild
+   ```
+   Esto escanea el vault y genera `.librarian/state/index.json`. Sin índice, la mayoría de los comandos no funcionan.
+
+5. **Verificá el estado**:
+   ```bash
+   librarian index status
+   ```
+   Debería mostrar que el índice está fresco.
+
+6. **Arrancá la TUI**:
+   ```bash
+   librarian
+   ```
+
+7. **Leé la barra de estado**:
+   - `● indice listo` — todo OK.
+   - `⚠ actualizar indice` — el vault cambió desde el último indexado. Salí con `Ctrl+C`, corré `librarian index rebuild`, y volvé a abrir.
+   - `○ sin indice` — nunca se indexó. Corré `librarian index rebuild`.
+   - `◉ LLM: modelo` — el modelo de IA está conectado.
+   - `✗ LLM desconectado` — Ollama no está corriendo. Verificá que esté activo con `ollama serve`.
+
+8. **Empezá a usarlo**: escribí preguntas en el chat, o usá `/search`, `/status`, `/help`.
+
+## First Run — Step by Step
+
+1. **Install Librarian** (see [Instalación](#instalación) below).
+
+2. **Point to your vault**:
+   ```bash
+   export LIBRARIAN_VAULT_PATH="/path/to/your/obsidian/vault"
+   ```
+
+3. **Initialize the Librarian layer in your vault**:
+   ```bash
+   librarian init
+   ```
+   This creates `raw/`, `wiki/`, `reports/`, `.librarian/`, and templates. It's idempotent — safe to run again.
+
+4. **Build the index**:
+   ```bash
+   librarian index rebuild
+   ```
+   This scans the vault and generates `.librarian/state/index.json`. Without an index, most commands won't work.
+
+5. **Verify the index**:
+   ```bash
+   librarian index status
+   ```
+   Should report a fresh index.
+
+6. **Start the TUI**:
+   ```bash
+   librarian
+   ```
+
+7. **Read the status bar**:
+   - `● indice listo` — all good.
+   - `⚠ actualizar indice` — the vault changed since last index. Quit with `Ctrl+C`, run `librarian index rebuild`, and restart.
+   - `○ sin indice` — never indexed. Run `librarian index rebuild`.
+   - `◉ LLM: model` — AI model is connected.
+   - `✗ LLM desconectado` — Ollama is not running. Make sure it's active with `ollama serve`.
+
+8. **Start using it**: type questions in the chat, or use `/search`, `/status`, `/help`.
+
 ## Instalación
 
 ```bash

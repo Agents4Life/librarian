@@ -65,7 +65,7 @@ export const StatusBar: React.FC = () => {
         <Text dimColor>│</Text>
         <Text color={theme.warning}>por revisar: {pendingCount}</Text>
       </>}
-      {h && <><Text dimColor>│</Text><Text color={h.color}>{h.icon}</Text></>}
+      {h && healthStatus !== 'healthy' && <><Text dimColor>│</Text><Text color={h.color}>{h.icon}</Text></>}
       <Text dimColor>│</Text>
       <Text color={ollama.color}>{ollama.icon} {getLlmStatusLabel(state.ollamaStatus, state.ollamaModel || undefined)}</Text>
     </Box>
