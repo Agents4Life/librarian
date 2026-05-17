@@ -31,7 +31,7 @@ import { runLibrarian } from '../harness.js';
 import { FileProposalStore } from '../proposals/proposal-store.js';
 import { ReviewService } from '../review/review-service.js';
 import { createIndexContext } from '../index-context.js';
-import { loadIndexMetadata, detectStaleness, type IndexCacheStatus } from '../indexer/index-metadata.js';
+import { loadIndexMetadata, saveIndexMetadata, detectStaleness, type IndexCacheStatus } from '../indexer/index-metadata.js';
 import { computeGraphHealth } from './health/compute-graph-health.js';
 import type { ChatMessage } from './types.js';
 import type { StoredProposal } from '../proposals/types.js';
@@ -98,11 +98,11 @@ export const App: React.FC = () => {
 
       const meta = await loadIndexMetadata(state.vaultPath);
       if (meta) {
-        const isStale = await detectStaleness(state.vaultPath, meta);
-        dispatch({ type: 'SET_INDEX_STATUS', status: isStale ? 'stale' : meta.status as IndexCacheStatus });
-      } else {
-        dispatch({ type: 'SET_INDEX_STATUS', status: 'fresh' });
+        meta.status = 'fresh';
+        meta.builtAt = new Date().toISOString();
+        await saveIndexMetadata(state.vaultPath, meta);
       }
+      dispatch({ type: 'SET_INDEX_STATUS', status: 'fresh' });
       return true;
     } catch (error) {
       dispatch({ type: 'SET_INDEX_STATUS', status: 'missing' });
