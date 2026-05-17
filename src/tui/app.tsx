@@ -91,9 +91,12 @@ export const App: React.FC = () => {
 
       const rawNotes = ctx.query.getBySection('raw');
       const processedPaths = await loadProcessedPaths(state.vaultPath);
+      const store = new FileProposalStore(state.vaultPath);
+      const allProposals = await store.list();
+      const proposedSources = new Set(allProposals.map((p) => p.sourcePath));
       const pendingCount = rawNotes.filter((n) => {
         const librarian = n.frontmatter.librarian as Record<string, unknown> | undefined;
-        return !Boolean(librarian?.processed) && !processedPaths.has(n.path);
+        return !Boolean(librarian?.processed) && !processedPaths.has(n.path) && !proposedSources.has(n.path);
       }).length;
       dispatch({ type: 'SET_RAW_PENDING', count: pendingCount });
 
@@ -650,17 +653,20 @@ const mapRunToNode = (run: unknown): WorkspaceNode | null => {
 export const formatRunResult = (raw: unknown, vaultPath?: string): string => {
   const result = raw as Record<string, unknown> | null;
 
+  const stripReminders = (text: string): string =>
+    text.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, '').trim();
+
   const fileLink = (filePath: string): string => {
     if (!vaultPath) return filePath;
     return path.join(vaultPath, filePath);
   };
 
   if (typeof result?.content === 'string') {
-    return cleanLlmResponse(result.content);
+    return stripReminders(cleanLlmResponse(result.content));
   }
 
   if (result?.message && typeof result.message === 'string') {
-    let out = result.message;
+    let out = stripReminders(result.message);
     if (result.hint) out += `\n💡 ${result.hint}`;
     if (Array.isArray(result.preview) && result.preview.length > 0) {
       out += '\nArchivos: ' + result.preview.slice(0, 5).join(', ');
