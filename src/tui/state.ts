@@ -100,6 +100,7 @@ export interface AppState {
   lastIndexAt: number | null;
   activityEvents: ActivityEvent[];
   chatScrollOffset: number;
+  rawPendingCount: number;
 }
 
 export type AppAction =
@@ -121,7 +122,8 @@ export type AppAction =
   | { type: 'TOGGLE_PREVIEW'; nodeId: string }
   | { type: 'SET_LAST_INDEX_AT'; timestamp: number }
   | { type: 'PUSH_ACTIVITY_EVENT'; event: ActivityEvent }
-  | { type: 'SET_CHAT_SCROLL'; offset: number };
+  | { type: 'SET_CHAT_SCROLL'; offset: number }
+  | { type: 'SET_RAW_PENDING'; count: number };
 
 const createNodeId = () => randomUUID();
 
@@ -270,6 +272,9 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'SET_CHAT_SCROLL':
       return { ...state, chatScrollOffset: Math.max(0, action.offset) };
 
+    case 'SET_RAW_PENDING':
+      return { ...state, rawPendingCount: action.count };
+
     default:
       return state;
   }
@@ -308,6 +313,7 @@ export const createInitialState = (vaultPath: string): AppState => {
     lastIndexAt: null,
     activityEvents: [],
     chatScrollOffset: 0,
+    rawPendingCount: 0,
   };
 };
 

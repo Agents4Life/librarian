@@ -61,6 +61,10 @@ export const StatusBar: React.FC = () => {
       <Text bold>{vaultName}</Text>
       <Text dimColor>│</Text>
       <Text color={idx.color}>{idx.icon} {idx.label}</Text>
+      {state.rawPendingCount > 0 && <>
+        <Text dimColor>│</Text>
+        <Text color={theme.warning}>sin procesar: {state.rawPendingCount}</Text>
+      </>}
       {pendingCount > 0 && <>
         <Text dimColor>│</Text>
         <Text color={theme.warning}>por revisar: {pendingCount}</Text>

@@ -8,8 +8,10 @@ const COMMANDS = [
   { cmd: '/status', desc: 'Estado del vault' },
   { cmd: '/process', desc: 'Procesar raw/' },
   { cmd: '/review', desc: 'Proposals pendientes' },
+  { cmd: '/researcher <tema>', desc: 'Investigar en internet' },
   { cmd: '/health', desc: 'Salud del grafo' },
   { cmd: '/orphans', desc: 'Notas huérfanas' },
+  { cmd: '/stale', desc: 'Notas sin tocar 90 días' },
   { cmd: '/help', desc: 'Esta ayuda' },
 ];
 
