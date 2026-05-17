@@ -40,7 +40,6 @@
 - [ ] `/search clean architecture` — resultado aparece como mensaje en chat
 - [ ] `/search` muestra rutas absolutas clickeables (Cmd+click)
 - [ ] `/status` — resultado aparece como mensaje en chat
-- [ ] `/process` — resultado aparece en chat, no escribe en wiki/
 - [ ] `/process` con raw/ vacío dice que no hay notas pendientes
 - [ ] `/stale` — resultado aparece como mensaje en chat
 
@@ -89,5 +88,4 @@
 ## Inconsistencias Conocidas (bugs pendientes)
 
 - `/graph` — README/CONTEXT dicen que va a chat, pero el código lo mapea a renderer overlay. Verificar comportamiento real.
-- `/researcher` — README lo documenta como comando, pero no está registrado en `src/tui/commands.ts`. El skill usa `/research` internamente.
 - `/stale` y `/activity` — README dice `/stale` va a chat y `/activity` va a overlay, pero ambos están ausentes de la lista de CHAT_INTENTS y pueden caer en `mapRunToNode`.

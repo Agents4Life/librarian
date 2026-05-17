@@ -26,7 +26,7 @@ import { ActivityStream } from './components/activity-stream.js';
 import { RendererSwitch } from './components/renderer-switch.js';
 import { createCommands, parseComposerInput } from './commands.js';
 import { defaultConfig } from '../config.js';
-import { createLlmClient, defaultLlmConfig } from '../llm.js';
+import { createLlmClient } from '../llm.js';
 import { runLibrarian } from '../harness.js';
 import { FileProposalStore } from '../proposals/proposal-store.js';
 import { ReviewService } from '../review/review-service.js';
@@ -36,7 +36,6 @@ import { computeGraphHealth } from './health/compute-graph-health.js';
 import type { ChatMessage } from './types.js';
 import type { StoredProposal } from '../proposals/types.js';
 import type { ActivityEvent } from './activity/types.js';
-import { createResearcher, autoDetectProvider } from '../skills/researcher/index.js';
 
 registerRenderer('chat', ChatRenderer);
 registerRenderer('search', SearchRenderer);
@@ -288,7 +287,7 @@ export const App: React.FC = () => {
     async () => {},
   );
 
-  const CHAT_INTENTS = new Set(['/search', '/status', '/process', '/stale', '/research', '/index']);
+  const CHAT_INTENTS = new Set(['/search', '/status', '/process', '/stale', '/index']);
 
   const sendToChat = useCallback((userInput: string, responseText: string, elapsed: number) => {
     const chatNode = state.workspace.find((n) => n.type === 'chat');
@@ -314,46 +313,6 @@ export const App: React.FC = () => {
         sendToChat(input, msg, elapsed);
         dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: ok ? '✓' : '✗', color: ok ? theme.success : theme.error, message: msg } });
         dispatch({ type: 'SET_LOADING', loading: false });
-        return;
-      }
-
-      if (parsed.command.slash === '/research') {
-        if (!parsed.args.trim()) {
-          sendToChat(input, 'Escribí un tema para investigar. Ejemplo: /researcher agentic search', 0);
-          return;
-        }
-
-        const chatNode = state.workspace.find((n) => n.type === 'chat');
-        if (!chatNode || chatNode.type !== 'chat') return;
-
-        const userMsg: ChatMessage = { role: 'user', content: input };
-        const updatedMessages = [...chatNode.messages, userMsg];
-        dispatch({ type: 'UPDATE_NODE', id: chatNode.id, patch: { messages: updatedMessages } as Partial<WorkspaceNode> });
-        dispatch({ type: 'SET_CHAT_SCROLL', offset: 0 });
-        dispatch({ type: 'SET_LOADING', loading: true });
-        uiEventBus.emit({ type: 'agent:thinking', message: `Investigando "${parsed.args.trim()}"...` });
-
-        const t0 = Date.now();
-        try {
-          const researcher = createResearcher({ llm: defaultLlmConfig, search: autoDetectProvider() });
-          const result = await researcher.research(parsed.args.trim());
-          const elapsed = Date.now() - t0;
-
-          let responseText = result.answer;
-          if (result.sources.length > 0) {
-            responseText += '\n\nFuentes:\n' + result.sources.slice(0, 5).map((s) => `  → ${s.title} — ${s.url}`).join('\n');
-          }
-
-          const assistantMsg: ChatMessage = { role: 'assistant', content: `${responseText}\n\n⏱ ${formatElapsed(elapsed)}` };
-          dispatch({ type: 'UPDATE_NODE', id: chatNode.id, patch: { messages: [...updatedMessages, assistantMsg] } as Partial<WorkspaceNode> });
-          dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `Investigacion lista (${formatElapsed(elapsed)})` } });
-        } catch (error) {
-          const errorMsg: ChatMessage = { role: 'assistant', content: `No se pudo investigar: ${error instanceof Error ? error.message : String(error)}` };
-          dispatch({ type: 'UPDATE_NODE', id: chatNode.id, patch: { messages: [...updatedMessages, errorMsg] } as Partial<WorkspaceNode> });
-          uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
-        } finally {
-          dispatch({ type: 'SET_LOADING', loading: false });
-        }
         return;
       }
 

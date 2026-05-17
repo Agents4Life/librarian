@@ -31,9 +31,10 @@
 - **Composer** — The input bar where the user types mensajes. Placeholder: "preguntame algo...".
 - **Tab** — Navigation shortcut (1-4): Chat, Revisar, Salud, Ayuda.
 - **Status Bar** — Bottom bar showing index status, LLM model/status, and pending proposal count.
-- **Slash routing** — `/search`, `/status`, `/process`, `/stale`, `/graph`, `/research`, `/index` → chat. `/health`, `/orphans`, `/review`, `/activity`, `/help` → overlay.
+- **Slash routing** — `/search`, `/status`, `/process`, `/stale`, `/graph`, `/index` → chat. `/health`, `/orphans`, `/review`, `/activity`, `/help` → overlay.
 - **Response format** — TUI responses are human-readable Spanish text. CLI one-shot returns JSON.
 
 ## External
 
 - **LLM** — Local language model (Ollama) used for classification, chat, and curation.
+- **Researcher** — External skill for web research (not wired into Librarian TUI; will be a separate agent).

@@ -52,11 +52,6 @@ export const createCommands = (dispatch: (action: unknown) => void, runLibrarian
     handler: () => { dispatch({ type: 'LOAD_HELP' }); },
   },
   {
-    slash: '/research',
-    description: 'Investigar tema en internet',
-    handler: (args) => { runLibrarian(`investigar ${args}`); },
-  },
-  {
     slash: '/index',
     description: 'Actualizar indice del vault',
     handler: () => { dispatch({ type: 'REBUILD_INDEX' }); },
