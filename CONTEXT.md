@@ -24,10 +24,15 @@
 
 ## TUI
 
+- **Chat-first** — Chat is the home view. Most slash commands produce text results that appear as chat messages.
+- **Overlay** — A temporary full-screen view for interactive dashboards (health, orphans, review, activity, help). Opened by slash commands, dismissed with Esc.
 - **Workspace Node** — A typed view rendered in the terminal (chat, search results, graph health, etc.).
-- **Activity Stream** — Real-time feed of what Librarian is doing.
-- **Composer** — The input bar where the user types mensajes.
+- **Activity Stream** — Real-time feed of what Librarian is doing (progress messages, errors).
+- **Composer** — The input bar where the user types mensajes. Placeholder: "preguntame algo...".
 - **Tab** — Navigation shortcut (1-4): Chat, Revisar, Salud, Ayuda.
+- **Status Bar** — Bottom bar showing index status, LLM model/status, and pending proposal count.
+- **Slash routing** — `/search`, `/status`, `/process`, `/stale`, `/graph`, `/researcher` → chat. `/health`, `/orphans`, `/review`, `/activity`, `/help` → overlay.
+- **Response format** — TUI responses are human-readable Spanish text. CLI one-shot returns JSON.
 
 ## External
 

@@ -178,19 +178,31 @@ Local-first es la postura por defecto, no una garantía si configurás un provee
 librarian
 ```
 
-La TUI usa una metáfora de workspace con múltiples vistas. Dentro de la TUI, usá comandos slash:
+La TUI es **chat-first**: el chat es la vista principal y los resultados de la mayoría de los comandos aparecen ahí como mensajes legibles. Las vistas interactivas (salud del grafo, revisión de propuestas) se abren como overlays temporales con `Esc` para volver.
 
-| Comando | Acción |
-|---------|--------|
-| `/search <query>` | Buscar en la wiki |
-| `/status` | Vista general del estado |
-| `/process` | Procesar notas raw |
-| `/review` | Revisar propuestas |
-| `/graph` | Grafo de conexiones |
-| `/orphans` | Mostrar notas huérfanas |
-| `/stale` | Mostrar notas stale (90+ días) |
-| `/health` | Dashboard de salud del grafo |
-| `/activity` | Log de actividad de la sesión |
+La barra de pestañas (1-4) da acceso directo a: **Chat**, **Revisar**, **Salud**, **Ayuda**.
+
+#### Comandos Slash
+
+Los comandos que producen texto van al chat. Los comandos interactivos abren overlays.
+
+| Comando | Destino | Acción |
+|---------|---------|--------|
+| `/search <query>` | Chat | Buscar en la wiki |
+| `/status` | Chat | Vista general del estado |
+| `/process` | Chat | Procesar notas raw |
+| `/review` | Overlay | Revisar propuestas pendientes |
+| `/graph` | Chat | Grafo de conexiones |
+| `/orphans` | Overlay | Mostrar notas huérfanas |
+| `/stale` | Chat | Mostrar notas stale (90+ días) |
+| `/health` | Overlay | Dashboard de salud del grafo |
+| `/activity` | Overlay | Log de actividad de la sesión |
+| `/researcher <tema>` | Chat | Investigar un tema en internet |
+| `/help` | Overlay | Lista de comandos disponibles |
+
+#### Barra de Estado
+
+La barra inferior muestra: estado del índice (`indice listo` / `⚠ actualizar indice`), modelo LLM activo (`LLM: qwen2.5:3b` / `✗ LLM desconectado`), y propuestas pendientes.
 
 ### Consulta Única
 
@@ -200,7 +212,7 @@ librarian "estado de la wiki"
 librarian "pregunta sobre Clean Architecture"
 ```
 
-La CLI devuelve JSON.
+La CLI one-shot devuelve JSON. La TUI devuelve texto legible.
 
 ### Inicialización Del Vault
 
