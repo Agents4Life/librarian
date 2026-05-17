@@ -81,35 +81,39 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  const rebuildIndex = useCallback(async () => {
+    dispatch({ type: 'SET_INDEX_STATUS', status: 'rebuilding' });
+    uiEventBus.emit({ type: 'agent:thinking', message: 'Actualizando indice...' });
+    try {
+      const ctx = await createIndexContext(state.vaultPath);
+      dispatch({ type: 'SET_LAST_INDEX_AT', timestamp: Date.now() });
+      uiEventBus.emit({ type: 'index:rebuilt', noteCount: Object.keys(ctx.index.notes).length });
+
+      const rawNotes = ctx.query.getBySection('raw');
+      const pending = rawNotes.filter((n) => {
+        const librarian = n.frontmatter.librarian as Record<string, unknown> | undefined;
+        return !Boolean(librarian?.processed);
+      });
+      dispatch({ type: 'SET_RAW_PENDING', count: pending.length });
+
+      const meta = await loadIndexMetadata(state.vaultPath);
+      if (meta) {
+        const isStale = await detectStaleness(state.vaultPath, meta);
+        dispatch({ type: 'SET_INDEX_STATUS', status: isStale ? 'stale' : meta.status as IndexCacheStatus });
+      } else {
+        dispatch({ type: 'SET_INDEX_STATUS', status: 'fresh' });
+      }
+      return true;
+    } catch (error) {
+      dispatch({ type: 'SET_INDEX_STATUS', status: 'missing' });
+      uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
+      return false;
+    }
+  }, [state.vaultPath]);
+
   useEffect(() => {
     checkOllama();
-
-    const buildIndexOnMount = async () => {
-      try {
-        const ctx = await createIndexContext(state.vaultPath);
-        dispatch({ type: 'SET_LAST_INDEX_AT', timestamp: Date.now() });
-        uiEventBus.emit({ type: 'index:rebuilt', noteCount: Object.keys(ctx.index.notes).length });
-
-        const rawNotes = ctx.query.getBySection('raw');
-        const pending = rawNotes.filter((n) => {
-          const librarian = n.frontmatter.librarian as Record<string, unknown> | undefined;
-          return !Boolean(librarian?.processed);
-        });
-        dispatch({ type: 'SET_RAW_PENDING', count: pending.length });
-
-        const meta = await loadIndexMetadata(state.vaultPath);
-        if (meta) {
-          const isStale = await detectStaleness(state.vaultPath, meta);
-          dispatch({ type: 'SET_INDEX_STATUS', status: isStale ? 'stale' : meta.status as IndexCacheStatus });
-        } else {
-          dispatch({ type: 'SET_INDEX_STATUS', status: 'fresh' });
-        }
-      } catch (error) {
-        dispatch({ type: 'SET_INDEX_STATUS', status: 'missing' });
-        uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
-      }
-    };
-    buildIndexOnMount();
+    rebuildIndex();
 
     const unsub = uiEventBus.subscribe((event) => {
       switch (event.type) {
@@ -284,7 +288,7 @@ export const App: React.FC = () => {
     async () => {},
   );
 
-  const CHAT_INTENTS = new Set(['/search', '/status', '/process', '/stale', '/research']);
+  const CHAT_INTENTS = new Set(['/search', '/status', '/process', '/stale', '/research', '/index']);
 
   const sendToChat = useCallback((userInput: string, responseText: string, elapsed: number) => {
     const chatNode = state.workspace.find((n) => n.type === 'chat');
@@ -301,6 +305,18 @@ export const App: React.FC = () => {
     const parsed = parseComposerInput(input, commands);
 
     if (parsed.isCommand && parsed.command) {
+      if (parsed.command.slash === '/index') {
+        dispatch({ type: 'SET_LOADING', loading: true });
+        const t0 = Date.now();
+        const ok = await rebuildIndex();
+        const elapsed = Date.now() - t0;
+        const msg = ok ? `Indice actualizado (${formatElapsed(elapsed)})` : 'Error al actualizar el indice';
+        sendToChat(input, msg, elapsed);
+        dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: ok ? '✓' : '✗', color: ok ? theme.success : theme.error, message: msg } });
+        dispatch({ type: 'SET_LOADING', loading: false });
+        return;
+      }
+
       if (parsed.command.slash === '/research') {
         if (!parsed.args.trim()) {
           sendToChat(input, 'Escribí un tema para investigar. Ejemplo: /researcher agentic search', 0);

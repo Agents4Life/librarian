@@ -9,6 +9,7 @@ const COMMANDS = [
   { cmd: '/process', desc: 'Procesar raw/' },
   { cmd: '/review', desc: 'Proposals pendientes' },
   { cmd: '/research <tema>', desc: 'Investigar en internet' },
+  { cmd: '/index', desc: 'Actualizar indice' },
   { cmd: '/health', desc: 'Salud del grafo' },
   { cmd: '/orphans', desc: 'Notas huérfanas' },
   { cmd: '/stale', desc: 'Notas sin tocar 90 días' },

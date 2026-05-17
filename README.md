@@ -280,6 +280,7 @@ Los comandos que producen texto van al chat. Los comandos interactivos abren ove
 | `/health` | Overlay | Dashboard de salud del grafo |
 | `/activity` | Overlay | Log de actividad de la sesión |
 | `/research <tema>` | Chat | Investigar un tema en internet |
+| `/index` | Chat | Actualizar indice del vault |
 | `/help` | Overlay | Lista de comandos disponibles |
 
 #### Barra de Estado

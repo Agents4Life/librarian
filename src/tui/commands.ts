@@ -56,6 +56,11 @@ export const createCommands = (dispatch: (action: unknown) => void, runLibrarian
     description: 'Investigar tema en internet',
     handler: (args) => { runLibrarian(`investigar ${args}`); },
   },
+  {
+    slash: '/index',
+    description: 'Actualizar indice del vault',
+    handler: () => { dispatch({ type: 'REBUILD_INDEX' }); },
+  },
 ];
 
 export const parseComposerInput = (input: string, commands: SlashCommand[]): { isCommand: boolean; command?: SlashCommand; args: string } => {
