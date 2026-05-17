@@ -32,7 +32,7 @@ import { FileProposalStore } from '../proposals/proposal-store.js';
 import { ReviewService } from '../review/review-service.js';
 import { createIndexContext } from '../index-context.js';
 import { loadIndexMetadata, saveIndexMetadata, detectStaleness, type IndexCacheStatus } from '../indexer/index-metadata.js';
-import { isProcessed } from '../review/processed-ledger.js';
+import { loadProcessedPaths } from '../review/processed-ledger.js';
 import { computeGraphHealth } from './health/compute-graph-health.js';
 import type { ChatMessage } from './types.js';
 import type { StoredProposal } from '../proposals/types.js';
@@ -90,14 +90,12 @@ export const App: React.FC = () => {
       uiEventBus.emit({ type: 'index:rebuilt', noteCount: Object.keys(ctx.index.notes).length });
 
       const rawNotes = ctx.query.getBySection('raw');
-      const pending = [];
-      for (const n of rawNotes) {
+      const processedPaths = await loadProcessedPaths(state.vaultPath);
+      const pendingCount = rawNotes.filter((n) => {
         const librarian = n.frontmatter.librarian as Record<string, unknown> | undefined;
-        if (Boolean(librarian?.processed)) continue;
-        const inLedger = await isProcessed(state.vaultPath, n.path);
-        if (!inLedger) pending.push(n);
-      }
-      dispatch({ type: 'SET_RAW_PENDING', count: pending.length });
+        return !Boolean(librarian?.processed) && !processedPaths.has(n.path);
+      }).length;
+      dispatch({ type: 'SET_RAW_PENDING', count: pendingCount });
 
       const meta = await loadIndexMetadata(state.vaultPath);
       if (meta) {

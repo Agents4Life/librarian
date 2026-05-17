@@ -44,6 +44,11 @@ export const isProcessed = async (vaultPath: string, sourcePath: string): Promis
   return sourcePath in ledger.processed;
 };
 
+export const loadProcessedPaths = async (vaultPath: string): Promise<Set<string>> => {
+  const ledger = await loadLedger(vaultPath);
+  return new Set(Object.keys(ledger.processed));
+};
+
 export const markProcessed = async (
   vaultPath: string,
   sourcePath: string,
