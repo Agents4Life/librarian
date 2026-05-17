@@ -12,6 +12,7 @@ import { createSemanticTool } from "./tools/semantic.tool.js";
 import { createWikilinksTool } from "./tools/wikilinks.tool.js";
 import { createSearchTool } from "./tools/search.tool.js";
 import { FileProposalStore } from "./proposals/proposal-store.js";
+import { applyProposalToVault } from "./review/apply-proposal.js";
 import path from "node:path";
 
 const resolveVaultPath = (basePath?: string) => basePath ?? defaultConfig.vaultPath;
@@ -163,7 +164,6 @@ export const runLibrarian = async (
       let proposed = 0;
       let skipped = 0;
       let errors = 0;
-      const created: string[] = [];
 
       for (const p of proposals) {
         if (p.type === 'skip') {
@@ -172,21 +172,24 @@ export const runLibrarian = async (
         }
         try {
           const stored = await store.create({ sourcePath: p.source, proposal: p });
-          created.push(stored.id);
-          proposed++;
+          const approved = await store.updateStatus(stored.id, 'approved');
+          const applyResult = await applyProposalToVault(vaultPath, approved);
+          if (!applyResult.success) {
+            errors++;
+          } else {
+            proposed++;
+          }
         } catch {
           errors++;
         }
       }
 
       result = {
-        message: `Se procesaron ${proposed} notas. ${skipped} duplicadas omitidas.`,
-        hint: proposed > 0 ? "Usá /review para ver las propuestas pendientes." : undefined,
+        message: `Se procesaron ${proposed} notas. ${skipped} duplicadas omitidas.${errors > 0 ? ` ${errors} errores.` : ''}`,
         total: curatable.length,
         proposed,
         skipped,
         errors,
-        created,
       };
       break;
 
