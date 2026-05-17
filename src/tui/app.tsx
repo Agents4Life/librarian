@@ -286,6 +286,7 @@ export const App: React.FC = () => {
     const updatedMessages = [...chatNode.messages, userMsg, assistantMsg];
     dispatch({ type: 'UPDATE_NODE', id: chatNode.id, patch: { messages: updatedMessages } as Partial<WorkspaceNode> });
     dispatch({ type: 'SET_ACTIVE_NODE', id: chatNode.id });
+    dispatch({ type: 'SET_CHAT_SCROLL', offset: 0 });
   }, [state.workspace, dispatch]);
 
   const handleComposerSubmit = useCallback(async (input: string) => {
@@ -401,6 +402,7 @@ export const App: React.FC = () => {
       const updatedMessages = [...chatNode.messages, userMsg];
 
       dispatch({ type: 'UPDATE_NODE', id: chatNode.id, patch: { messages: updatedMessages } as Partial<WorkspaceNode> });
+      dispatch({ type: 'SET_CHAT_SCROLL', offset: 0 });
       dispatch({ type: 'SET_LOADING', loading: true });
       uiEventBus.emit({ type: 'agent:thinking', message: 'Clasificando consulta...' });
 
@@ -440,6 +442,24 @@ export const App: React.FC = () => {
   };
 
   useInput((input, key) => {
+    const activeNode = state.workspace.find((n) => n.id === state.activeNodeId);
+    const isChat = activeNode?.type === 'chat';
+
+    if (isChat && state.composerValue === '') {
+      if (key.pageUp) {
+        dispatch({ type: 'SET_CHAT_SCROLL', offset: state.chatScrollOffset + 5 });
+        return;
+      }
+      if (key.pageDown) {
+        dispatch({ type: 'SET_CHAT_SCROLL', offset: Math.max(0, state.chatScrollOffset - 5) });
+        return;
+      }
+      if (key.return && input === '') {
+        dispatch({ type: 'SET_CHAT_SCROLL', offset: 0 });
+        return;
+      }
+    }
+
     if (key.escape) {
       if (state.composerValue === '') {
         dispatch({ type: 'NAVIGATE_BACK' });

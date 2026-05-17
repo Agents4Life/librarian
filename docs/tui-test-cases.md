@@ -10,21 +10,21 @@
 - [x] Navegación con teclas `1`, `2`, `3`, `4` cambia de vista
 - [x] Tab cycle con `Tab` rota entre vistas
 - [x] `Esc` vuelve a la vista anterior desde overlay
-- [ ] `Ctrl+C` sale de la TUI
+- [x] `Ctrl+C` sale de la TUI
 
 ## Status Bar
 
-- [ ] Muestra nombre del vault (nombre de carpeta)
-- [ ] `indice listo` cuando el índice está fresco
-- [ ] `⚠ actualizar indice` cuando el índice está viejo
-- [ ] `sin indice` cuando no hay índice
-- [ ] `actualizando indice...` durante rebuild
-- [ ] `LLM: <modelo>` cuando Ollama está conectado
-- [ ] `✗ LLM desconectado` cuando Ollama no responde (icono rojo visible)
-- [ ] LLM conectado: no se muestra estado de LLM en la barra (solo visible cuando hay problemas)
-- [ ] `falta modelo IA` cuando no hay modelo configurado
-- [ ] `por revisar: N` solo visible si hay propuestas pendientes (0 lo oculta)
-- [ ] Indicador de salud del grafo: `✓` / `⚠` / `✗`
+- [x] Muestra nombre del vault (nombre de carpeta)
+- [x] `indice listo` cuando el índice está fresco
+- [x] `⚠ actualizar indice` cuando el índice está viejo
+- [x] `sin indice` cuando no hay índice
+- [x] `actualizando indice...` durante rebuild
+- [x] `LLM: <modelo>` cuando Ollama está conectado
+- [x] `✗ LLM desconectado` cuando Ollama no responde (icono rojo visible)
+- [x] LLM conectado: no se muestra estado de LLM en la barra (solo visible cuando hay problemas)
+- [x] `falta modelo IA` cuando no hay modelo configurado
+- [x] `por revisar: N` solo visible si hay propuestas pendientes (0 lo oculta)
+- [x] Indicador de salud del grafo: `✓` / `⚠` / `✗`
 
 ## Chat (vista principal)
 

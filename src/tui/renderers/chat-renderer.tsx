@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { theme } from '../theme.js';
+import { useAppState } from '../state.js';
 import type { RendererProps } from './registry.js';
 import type { ChatMessage } from '../types.js';
 
@@ -59,13 +60,24 @@ const humanizeResponse = (text: string): string => {
   }
 };
 
+const countWrappedLines = (text: string, columns: number): number => {
+  if (!text) return 1;
+  let total = 0;
+  for (const line of text.split('\n')) {
+    total += Math.max(1, Math.ceil(line.length / Math.max(1, columns)));
+  }
+  return total;
+};
+
 export const ChatRenderer: React.FC<RendererProps> = ({ node }) => {
+  const { state } = useAppState();
+  const columns = (process.stdout.columns ?? 80) - 4;
+
   if (node.type !== 'chat') return null;
 
   const messages: ChatMessage[] = node.messages.filter((m: ChatMessage) => m.role !== 'system');
-  const visible = messages.slice(-20);
 
-  if (visible.length === 0) {
+  if (messages.length === 0) {
     return (
       <Box flexDirection="column">
         <Text color={theme.primary} bold>Hola! Soy Librarian. Puedo ayudarte con tu vault.</Text>
@@ -74,26 +86,57 @@ export const ChatRenderer: React.FC<RendererProps> = ({ node }) => {
     );
   }
 
+  const offset = state.chatScrollOffset;
+
+  const reversed = [...messages].reverse();
+  const picked: { msg: ChatMessage; displayText: string; origIdx: number }[] = [];
+  let skipped = 0;
+  let accumulated = 0;
+
+  for (let i = 0; i < reversed.length; i++) {
+    const msg = reversed[i];
+    const content = clean(msg.content);
+    const displayText = msg.role === 'user' ? content : humanizeResponse(content);
+    const lineCount = countWrappedLines(displayText, columns) + 1;
+
+    if (offset > 0 && skipped < offset) {
+      skipped += lineCount;
+      if (skipped > offset) {
+        picked.push({ msg, displayText, origIdx: messages.length - 1 - i });
+      }
+      continue;
+    }
+
+    accumulated += lineCount;
+    picked.push({ msg, displayText, origIdx: messages.length - 1 - i });
+  }
+
+  picked.reverse();
+
+  const hasAbove = picked.length > 0 && picked[0].origIdx > 0;
+  const hasBelow = offset > 0;
+
   return (
     <Box flexDirection="column">
-      {visible.map((msg: ChatMessage, i: number) => {
-        const content = clean(msg.content);
+      {hasAbove && <Text dimColor>↑ mensajes anteriores (PgUp)</Text>}
+      {picked.map(({ msg, displayText, origIdx }) => {
         if (msg.role === 'user') {
           return (
-            <Box key={i} flexDirection="column" borderStyle="single" borderLeft={true} borderRight={false} borderTop={false} borderBottom={false} borderColor={theme.primary} paddingLeft={1}>
+            <Box key={origIdx} flexDirection="column" borderStyle="single" borderLeft={true} borderRight={false} borderTop={false} borderBottom={false} borderColor={theme.primary} paddingLeft={1}>
               <Text bold color={theme.primary}>Vos</Text>
-              <Text wrap="wrap">{content}</Text>
+              <Text wrap="wrap">{displayText}</Text>
             </Box>
           );
         }
 
         return (
-          <Box key={i} flexDirection="column">
+          <Box key={origIdx} flexDirection="column">
             <Text bold color={theme.muted}>Librarian</Text>
-            <Text wrap="wrap">{humanizeResponse(content)}</Text>
+            <Text wrap="wrap">{displayText}</Text>
           </Box>
         );
       })}
+      {hasBelow && <Text dimColor>↓ mensajes abajo (PgDn · End abajo)</Text>}
     </Box>
   );
 };
