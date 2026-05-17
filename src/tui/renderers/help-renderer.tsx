@@ -28,7 +28,7 @@ export const HelpRenderer: React.FC<RendererProps> = () => {
         </Box>
       ))}
       <Text> </Text>
-      <Text dimColor>Ctrl+C salir · Esc Esc cancelar · 1-4 navegar</Text>
+      <Text dimColor>Ctrl+C salir · ⌘Esc cancelar · 1-4 navegar</Text>
     </Box>
   );
 };

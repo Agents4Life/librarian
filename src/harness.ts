@@ -66,6 +66,7 @@ export const runLibrarian = async (
   basePath?: string,
   session: AgentSession = createSession(),
   llmClient = createLlmClient(),
+  signal?: AbortSignal,
 ): Promise<AgentRun<unknown>> => {
   const routed = await routeIntent(input);
   const vaultPath = resolveVaultPath(basePath);
@@ -164,15 +165,20 @@ export const runLibrarian = async (
       let proposed = 0;
       let skipped = 0;
       let errors = 0;
+      let cancelled = false;
 
       for (const p of proposals) {
+        if (signal?.aborted) { cancelled = true; break; }
         if (p.type === 'skip') {
           skipped++;
           continue;
         }
         try {
+          if (signal?.aborted) { cancelled = true; break; }
           const stored = await store.create({ sourcePath: p.source, proposal: p });
+          if (signal?.aborted) { cancelled = true; break; }
           const approved = await store.updateStatus(stored.id, 'approved');
+          if (signal?.aborted) { cancelled = true; break; }
           const applyResult = await applyProposalToVault(vaultPath, approved);
           if (!applyResult.success) {
             errors++;
@@ -184,8 +190,9 @@ export const runLibrarian = async (
         }
       }
 
+      const cancelMsg = cancelled ? ` Cancelado después de ${proposed} notas.` : '';
       result = {
-        message: `Se procesaron ${proposed} notas. ${skipped} duplicadas omitidas.${errors > 0 ? ` ${errors} errores.` : ''}`,
+        message: `Se procesaron ${proposed} notas. ${skipped} duplicadas omitidas.${errors > 0 ? ` ${errors} errores.` : ''}${cancelMsg}`,
         total: curatable.length,
         proposed,
         skipped,

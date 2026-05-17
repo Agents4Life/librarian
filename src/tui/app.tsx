@@ -72,7 +72,7 @@ export const App: React.FC = () => {
   const contentMaxHeight = getMainContentMaxHeight(rows);
 
   const abortRef = useRef<AbortController | null>(null);
-  const lastEscRef = useRef<number>(0);
+
 
   const checkOllama = useCallback(async () => {
     try {
@@ -405,7 +405,7 @@ export const App: React.FC = () => {
       const ac = new AbortController();
       abortRef.current = ac;
       try {
-        const run = await runLibrarian(parsed.command.slash === '/search' ? `buscar ${parsed.args}` : input);
+        const run = await runLibrarian(parsed.command.slash === '/search' ? `buscar ${parsed.args}` : input, undefined, undefined, undefined, ac.signal);
         const elapsed = Date.now() - cmdStart;
 
         if (CHAT_INTENTS.has(parsed.command.slash)) {
@@ -447,8 +447,10 @@ export const App: React.FC = () => {
       uiEventBus.emit({ type: 'agent:thinking', message: 'Clasificando consulta...' });
 
       const startTime = Date.now();
+      const ac = new AbortController();
+      abortRef.current = ac;
       try {
-        const run = await runLibrarian(parsed.args, state.vaultPath);
+        const run = await runLibrarian(parsed.args, state.vaultPath, undefined, undefined, ac.signal);
         const elapsed = Date.now() - startTime;
         uiEventBus.emit({ type: 'agent:thinking', message: 'Formateando respuesta...' });
         const responseText = formatRunResult(run.result, state.vaultPath);
@@ -461,6 +463,7 @@ export const App: React.FC = () => {
         });
         uiEventBus.emit({ type: 'agent:done', nodeId: chatNode.id });
       } catch (error) {
+        if (ac.signal.aborted) return;
         const errorMsg: ChatMessage = { role: 'assistant', content: `Error: ${error instanceof Error ? error.message : String(error)}` };
         dispatch({
           type: 'UPDATE_NODE',
@@ -469,6 +472,7 @@ export const App: React.FC = () => {
         });
         uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
       } finally {
+        abortRef.current = null;
         dispatch({ type: 'SET_LOADING', loading: false });
       }
     }
@@ -500,23 +504,17 @@ export const App: React.FC = () => {
       }
     }
 
-    if (key.escape) {
-      if (state.loading) {
-        const now = Date.now();
-        if (now - lastEscRef.current < 500) {
-          if (abortRef.current) {
-            abortRef.current.abort();
-            abortRef.current = null;
-          }
-          dispatch({ type: 'SET_LOADING', loading: false });
-          uiEventBus.emit({ type: 'agent:error', error: 'Procesamiento cancelado' });
-          lastEscRef.current = 0;
-          return;
-        }
-        lastEscRef.current = now;
-        uiEventBus.emit({ type: 'agent:thinking', message: 'Presioná Esc de nuevo para cancelar' });
-        return;
+    if (key.escape && (key.meta || key.ctrl) && state.loading) {
+      if (abortRef.current) {
+        abortRef.current.abort();
+        abortRef.current = null;
       }
+      dispatch({ type: 'SET_LOADING', loading: false });
+      uiEventBus.emit({ type: 'agent:error', error: 'Procesamiento cancelado' });
+      return;
+    }
+
+    if (key.escape) {
       if (state.composerValue === '') {
         dispatch({ type: 'NAVIGATE_BACK' });
       }
