@@ -409,8 +409,7 @@ export const App: React.FC = () => {
 
           const res = run.result as Record<string, unknown> | null;
           if (parsed.command.slash === '/process' && res) {
-            const remaining = Math.max(0, state.rawPendingCount - (Number(res.proposed ?? 0) + Number(res.skipped ?? 0)));
-            dispatch({ type: 'SET_RAW_PENDING', count: remaining });
+            await rebuildIndex();
           }
         } else {
           const node = mapRunToNode(run);
