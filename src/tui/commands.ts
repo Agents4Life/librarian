@@ -52,7 +52,7 @@ export const createCommands = (dispatch: (action: unknown) => void, runLibrarian
     handler: () => { dispatch({ type: 'LOAD_HELP' }); },
   },
   {
-    slash: '/researcher',
+    slash: '/research',
     description: 'Investigar tema en internet',
     handler: (args) => { runLibrarian(`investigar ${args}`); },
   },

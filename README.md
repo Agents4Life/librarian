@@ -279,7 +279,7 @@ Los comandos que producen texto van al chat. Los comandos interactivos abren ove
 | `/stale` | Chat | Mostrar notas stale (90+ días) |
 | `/health` | Overlay | Dashboard de salud del grafo |
 | `/activity` | Overlay | Log de actividad de la sesión |
-| `/researcher <tema>` | Chat | Investigar un tema en internet |
+| `/research <tema>` | Chat | Investigar un tema en internet |
 | `/help` | Overlay | Lista de comandos disponibles |
 
 #### Barra de Estado

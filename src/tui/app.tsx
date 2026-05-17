@@ -284,7 +284,7 @@ export const App: React.FC = () => {
     async () => {},
   );
 
-  const CHAT_INTENTS = new Set(['/search', '/status', '/process', '/stale', '/researcher']);
+  const CHAT_INTENTS = new Set(['/search', '/status', '/process', '/stale', '/research']);
 
   const sendToChat = useCallback((userInput: string, responseText: string, elapsed: number) => {
     const chatNode = state.workspace.find((n) => n.type === 'chat');
@@ -301,7 +301,7 @@ export const App: React.FC = () => {
     const parsed = parseComposerInput(input, commands);
 
     if (parsed.isCommand && parsed.command) {
-      if (parsed.command.slash === '/researcher') {
+      if (parsed.command.slash === '/research') {
         if (!parsed.args.trim()) {
           sendToChat(input, 'Escribí un tema para investigar. Ejemplo: /researcher agentic search', 0);
           return;
