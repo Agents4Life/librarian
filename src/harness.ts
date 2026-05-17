@@ -11,6 +11,7 @@ import { createFrontmatterTool } from "./tools/frontmatter.tool.js";
 import { createSemanticTool } from "./tools/semantic.tool.js";
 import { createWikilinksTool } from "./tools/wikilinks.tool.js";
 import { createSearchTool } from "./tools/search.tool.js";
+import { FileProposalStore } from "./proposals/proposal-store.js";
 import path from "node:path";
 
 const resolveVaultPath = (basePath?: string) => basePath ?? defaultConfig.vaultPath;
@@ -149,11 +150,43 @@ export const runLibrarian = async (
       steps.push({ kind: "act", message: "Inspeccionar raw inbox", tool: "ingest.inspectRawInbox" });
       const inbox = await inspectRawInbox(vaultPath, indexContext.query);
       const curatable = inbox.notes.filter((n) => n.recommendation === "curate");
+
+      if (curatable.length === 0) {
+        result = { message: "No hay notas pendientes para procesar.", total: 0, proposed: 0, skipped: 0, errors: 0 };
+        break;
+      }
+
+      steps.push({ kind: "act", message: `Procesar ${curatable.length} notas`, tool: "curation.proposeWikiCurations" });
+      const { proposals } = await proposeWikiCurations(vaultPath, curatable.length, indexContext.query);
+
+      const store = new FileProposalStore(vaultPath);
+      let proposed = 0;
+      let skipped = 0;
+      let errors = 0;
+      const created: string[] = [];
+
+      for (const p of proposals) {
+        if (p.type === 'skip') {
+          skipped++;
+          continue;
+        }
+        try {
+          const stored = await store.create({ sourcePath: p.source, proposal: p });
+          created.push(stored.id);
+          proposed++;
+        } catch {
+          errors++;
+        }
+      }
+
       result = {
-        message: `${curatable.length} notas pendientes para procesar.`,
-        hint: "Para procesamiento por lotes usá: node scripts/process-raw.js --limit 10",
-        preview: curatable.slice(0, 10).map((n) => n.file),
+        message: `Se procesaron ${proposed} notas. ${skipped} duplicadas omitidas.`,
+        hint: proposed > 0 ? "Usá /review para ver las propuestas pendientes." : undefined,
         total: curatable.length,
+        proposed,
+        skipped,
+        errors,
+        created,
       };
       break;
 

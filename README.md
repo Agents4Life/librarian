@@ -272,7 +272,7 @@ Los comandos que producen texto van al chat. Los comandos interactivos abren ove
 |---------|---------|--------|
 | `/search <query>` | Chat | Buscar en la wiki |
 | `/status` | Chat | Vista general del estado |
-| `/process` | Chat | Procesar notas raw |
+| `/process` | Chat | Procesar notas raw y crear propuestas |
 | `/review` | Overlay | Revisar propuestas pendientes |
 | `/graph` | Chat | Grafo de conexiones |
 | `/orphans` | Overlay | Mostrar notas huérfanas |
@@ -346,6 +346,17 @@ Estados de propuesta: `pending → approved → applying → applied`, `pending 
 ```
 
 ### Procesamiento Batch De Raw
+
+#### Desde la TUI
+
+Dentro de la TUI, `/process` procesa todas las notas pendientes de `raw/` y genera propuestas en `.librarian/proposals/`. Después usá `/review` para revisar y aprobar.
+
+```
+/process    → procesa notas y crea propuestas
+/review     → revisar, aprobar o rechazar
+```
+
+#### Desde la CLI
 
 Previsualizar propuestas sin escribir:
 
