@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useReducer } from 'react';
+import React, { useCallback, useEffect, useReducer, useRef } from 'react';
 import { Box, Text, useInput, useStdout } from 'ink';
 import path from 'node:path';
 
@@ -70,6 +70,9 @@ export const App: React.FC = () => {
   const { stdout } = useStdout();
   const rows = stdout.rows ?? 24;
   const contentMaxHeight = getMainContentMaxHeight(rows);
+
+  const abortRef = useRef<AbortController | null>(null);
+  const lastEscRef = useRef<number>(0);
 
   const checkOllama = useCallback(async () => {
     try {
@@ -399,6 +402,8 @@ export const App: React.FC = () => {
       dispatch({ type: 'SET_LOADING', loading: true });
       uiEventBus.emit({ type: 'agent:thinking', message: `Ejecutando ${parsed.command.slash}...` });
       const cmdStart = Date.now();
+      const ac = new AbortController();
+      abortRef.current = ac;
       try {
         const run = await runLibrarian(parsed.command.slash === '/search' ? `buscar ${parsed.args}` : input);
         const elapsed = Date.now() - cmdStart;
@@ -420,8 +425,10 @@ export const App: React.FC = () => {
           }
         }
       } catch (error) {
+        if (ac.signal.aborted) return;
         uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
       } finally {
+        abortRef.current = null;
         dispatch({ type: 'SET_LOADING', loading: false });
       }
       return;
@@ -494,6 +501,22 @@ export const App: React.FC = () => {
     }
 
     if (key.escape) {
+      if (state.loading) {
+        const now = Date.now();
+        if (now - lastEscRef.current < 500) {
+          if (abortRef.current) {
+            abortRef.current.abort();
+            abortRef.current = null;
+          }
+          dispatch({ type: 'SET_LOADING', loading: false });
+          uiEventBus.emit({ type: 'agent:error', error: 'Procesamiento cancelado' });
+          lastEscRef.current = 0;
+          return;
+        }
+        lastEscRef.current = now;
+        uiEventBus.emit({ type: 'agent:thinking', message: 'Presioná Esc de nuevo para cancelar' });
+        return;
+      }
       if (state.composerValue === '') {
         dispatch({ type: 'NAVIGATE_BACK' });
       }
