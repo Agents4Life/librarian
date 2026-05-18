@@ -12,6 +12,7 @@ import { createSemanticTool } from "./tools/semantic.tool.js";
 import { createWikilinksTool } from "./tools/wikilinks.tool.js";
 import { createSearchTool } from "./tools/search.tool.js";
 import { FileProposalStore } from "./proposals/proposal-store.js";
+import { ReviewService } from "./review/review-service.js";
 import { exportProposalToReview } from "./review/export-review.js";
 import path from "node:path";
 
@@ -162,6 +163,7 @@ export const runLibrarian = async (
       const { proposals } = await proposeWikiCurations(vaultPath, curatable.length, indexContext.query, signal);
 
       const store = new FileProposalStore(vaultPath);
+      const service = new ReviewService(store, vaultPath);
       let proposed = 0;
       let skipped = 0;
       let errors = 0;
@@ -178,7 +180,15 @@ export const runLibrarian = async (
           const stored = await store.create({ sourcePath: p.source, proposal: p });
           if (signal?.aborted) { cancelled = true; break; }
           await exportProposalToReview(vaultPath, stored);
-          proposed++;
+
+          await service.approve(stored.id);
+          const applied = await service.apply(stored.id);
+
+          if (applied.status === 'applied') {
+            proposed++;
+          } else {
+            errors++;
+          }
         } catch {
           errors++;
         }
@@ -186,7 +196,7 @@ export const runLibrarian = async (
 
       const cancelMsg = cancelled ? ` Cancelado después de ${proposed} notas.` : '';
       result = {
-        message: `Se generaron ${proposed} propuestas para revisión. ${skipped} duplicadas omitidas.${errors > 0 ? ` ${errors} errores.` : ''}${cancelMsg}`,
+        message: `Se procesaron ${proposed} notas en la wiki. ${skipped} duplicadas omitidas.${errors > 0 ? ` ${errors} errores.` : ''}${cancelMsg}`,
         total: curatable.length,
         proposed,
         skipped,
