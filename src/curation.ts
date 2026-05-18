@@ -162,6 +162,8 @@ export const proposeWikiPage = async (
   rawRelativePath: string,
   existingPages: string[] = [],
   skipDuplicates = true,
+  queryApi?: ToolContext["queryApi"],
+  signal?: AbortSignal,
 ): Promise<CurationProposal> => {
   const sourceAbsolutePath = path.resolve(basePath, rawRelativePath);
   const sourceContent = await readFile(sourceAbsolutePath, 'utf8');
@@ -180,7 +182,7 @@ export const proposeWikiPage = async (
   let suggestedLinks: string[] = [];
 
   try {
-    const response = await client.chat(messages);
+    const response = await client.chat(messages, signal);
     const content = response.content?.trim();
 
     if (content) {
@@ -221,7 +223,7 @@ export const proposeWikiPage = async (
 
     // 2b. Semantic match (only if no filename match)
     if (duplicate === 'none') {
-      const semanticCheck = await checkSemanticDuplicate(basePath, sourceContent, fileName, undefined);
+      const semanticCheck = await checkSemanticDuplicate(basePath, sourceContent, fileName, queryApi);
       if (semanticCheck.reason !== 'none') {
         duplicate = semanticCheck.reason;
         duplicateOf = semanticCheck.existingPath;
@@ -263,7 +265,7 @@ export const proposeWikiPage = async (
   };
 };
 
-export const proposeWikiCurations = async (basePath: string, limit = 10, queryApi?: ToolContext["queryApi"]) => {
+export const proposeWikiCurations = async (basePath: string, limit = 10, queryApi?: ToolContext["queryApi"], signal?: AbortSignal) => {
   const inbox = await inspectRawInbox(basePath, queryApi);
   const toProcess = inbox.notes.filter(n => n.recommendation === 'curate').slice(0, limit);
 
@@ -280,8 +282,9 @@ export const proposeWikiCurations = async (basePath: string, limit = 10, queryAp
   const proposals: CurationProposal[] = [];
 
   for (let i = 0; i < toProcess.length; i++) {
+    if (signal?.aborted) break;
     const note = toProcess[i];
-    proposals.push(await proposeWikiPage(basePath, note.file, existingPages));
+    proposals.push(await proposeWikiPage(basePath, note.file, existingPages, true, queryApi, signal));
     process.stdout.write(`\r  Procesando ${i + 1}/${toProcess.length}: ${path.basename(note.file)}...`);
   }
   if (toProcess.length > 0) process.stdout.write('\n');

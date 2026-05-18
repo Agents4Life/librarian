@@ -151,4 +151,4 @@ const { render } = await import('ink');
 const React = await import('react');
 const { App } = await import('./tui/app.js');
 
-render(React.createElement(App));
+render(React.createElement(App), { exitOnCtrlC: false });

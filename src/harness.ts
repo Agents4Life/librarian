@@ -159,7 +159,7 @@ export const runLibrarian = async (
       }
 
       steps.push({ kind: "act", message: `Procesar ${curatable.length} notas`, tool: "curation.proposeWikiCurations" });
-      const { proposals } = await proposeWikiCurations(vaultPath, curatable.length, indexContext.query);
+      const { proposals } = await proposeWikiCurations(vaultPath, curatable.length, indexContext.query, signal);
 
       const store = new FileProposalStore(vaultPath);
       let proposed = 0;

@@ -127,7 +127,7 @@ export const createLlmClient = (config: LlmConfig = defaultLlmConfig) => ({
     return { status: 'down' };
   },
 
-  chat: async (messages: LlmMessage[]): Promise<LlmResponse> => {
+  chat: async (messages: LlmMessage[], signal?: AbortSignal): Promise<LlmResponse> => {
     const baseUrls = [config.baseUrl, ...(config.fallbackBaseUrls ?? [])];
     const candidates = [config.model, config.fallbackModel].filter((model): model is string => Boolean(model));
     let lastError: unknown;
@@ -136,10 +136,23 @@ export const createLlmClient = (config: LlmConfig = defaultLlmConfig) => ({
       for (const model of candidates) {
         try {
           return await withTimeout(
-            (signal) => requestChatCompletion(config, messages, baseUrl, model, signal),
+            (innerSignal) => {
+              const combined = new AbortController();
+              const onInnerAbort = () => combined.abort();
+              const onOuterAbort = () => combined.abort();
+              innerSignal.addEventListener('abort', onInnerAbort);
+              signal?.addEventListener('abort', onOuterAbort);
+              if (innerSignal.aborted || signal?.aborted) combined.abort();
+              return requestChatCompletion(config, messages, baseUrl, model, combined.signal)
+                .finally(() => {
+                  innerSignal.removeEventListener('abort', onInnerAbort);
+                  signal?.removeEventListener('abort', onOuterAbort);
+                });
+            },
             config.timeoutMs,
           );
         } catch (error) {
+          if (signal?.aborted) throw error;
           lastError = error;
         }
       }

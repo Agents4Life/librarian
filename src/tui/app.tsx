@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useReducer, useRef } from 'react';
-import { Box, Text, useInput, useStdout } from 'ink';
+import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import path from 'node:path';
 
 import { AppStateContext, appReducer, createInitialState, type WorkspaceNode } from './state.js';
@@ -68,6 +68,7 @@ const refreshAllStatusInbox = async (service: ReviewService, inboxNode: Workspac
 export const App: React.FC = () => {
   const [state, dispatch] = useReducer(appReducer, defaultConfig.vaultPath, createInitialState);
   const { stdout } = useStdout();
+  const { exit } = useApp();
   const rows = stdout.rows ?? 24;
   const contentMaxHeight = getMainContentMaxHeight(rows);
 
@@ -122,6 +123,8 @@ export const App: React.FC = () => {
     checkOllama();
     rebuildIndex();
 
+    const healthInterval = setInterval(checkOllama, 30000);
+
     const unsub = uiEventBus.subscribe((event) => {
       switch (event.type) {
         case 'agent:thinking':
@@ -159,7 +162,10 @@ export const App: React.FC = () => {
       }
     });
 
-    return unsub;
+    return () => {
+      clearInterval(healthInterval);
+      unsub();
+    };
   }, [checkOllama, state.vaultPath]);
 
   const loadProposalInbox = useCallback(async (): Promise<string | null> => {
@@ -222,6 +228,7 @@ export const App: React.FC = () => {
 
         const inboxNode = state.workspace.find((n) => n.type === 'proposal-inbox');
         await refreshAllStatusInbox(service, inboxNode, dispatch);
+        await rebuildIndex();
         dispatch({ type: 'NAVIGATE_BACK' });
       } catch (error) {
         uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
@@ -241,6 +248,7 @@ export const App: React.FC = () => {
 
         const inboxNode = state.workspace.find((n) => n.type === 'proposal-inbox');
         await refreshAllStatusInbox(service, inboxNode, dispatch);
+        await rebuildIndex();
         dispatch({ type: 'NAVIGATE_BACK' });
       } catch (error) {
         uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
@@ -504,13 +512,15 @@ export const App: React.FC = () => {
       }
     }
 
-    if (key.escape && (key.meta || key.ctrl) && state.loading) {
-      if (abortRef.current) {
+    if (key.ctrl && input === 'c') {
+      if (state.loading && abortRef.current) {
         abortRef.current.abort();
         abortRef.current = null;
+        dispatch({ type: 'SET_LOADING', loading: false });
+        uiEventBus.emit({ type: 'agent:error', error: 'Procesamiento cancelado' });
+        return;
       }
-      dispatch({ type: 'SET_LOADING', loading: false });
-      uiEventBus.emit({ type: 'agent:error', error: 'Procesamiento cancelado' });
+      exit();
       return;
     }
 
