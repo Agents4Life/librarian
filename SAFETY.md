@@ -13,9 +13,10 @@ Librarian is experimental alpha software for personal knowledge bases. Treat it 
 ## Vault Rules
 
 - `raw/` is intended to be immutable source material.
+- `inbox/`, `daily/`, and PARA folders are the human layer. Librarian does not process them directly.
 - `wiki/` contains maintained knowledge pages.
 - `reports/` contains diagnostics, reports, chat logs, and other generated artifacts.
-- `reviews/` is intended as a human-readable review/export surface. It is not the proposal source of truth yet.
+- `reviews/` is intended as a human-readable review/export surface. It is not the proposal source of truth.
 - `.librarian/proposals/` is the proposal source of truth.
 - `.librarian/state/` contains indexes, metadata, and the processed ledger.
 - `.librarian/transactions/` contains apply transaction records.
@@ -33,7 +34,7 @@ State/report write paths include:
 - `librarian index rebuild`, which writes `.librarian/state/index.json` and index metadata.
 - Status/report flows, which may write Markdown diagnostics under `reports/`.
 - Chat persistence, which writes chat logs under `reports/chats/`.
-- Batch curation through `scripts/process-raw.js`, which writes proposals under `.librarian/proposals/` in live mode.
+- Batch curation and TUI `/process`, which write proposals under `.librarian/proposals/` and readable exports under `reviews/` in live mode.
 - Proposal apply through `librarian apply <id>`, which writes an approved target under `wiki/`, transaction records under `.librarian/transactions/`, and the processed ledger under `.librarian/state/processed.json`.
 
 Batch processing supports `--dry-run`; use it before live mode. Live batch processing generates proposals only. It does not write directly to `wiki/`.
@@ -70,7 +71,7 @@ Do not use a cloud model with notes you are not willing to send to that provider
 - Misconfigured vault paths.
 - Provider-specific privacy or retention policies.
 - `reviews/`, `memory/`, and `configs/` are part of the intended vault model, but some behavior is still roadmap or only partially integrated.
-- `wiki/index.md` and `wiki/log.md` maintenance utilities exist, but automatic post-apply maintenance is not yet fully integrated.
+- `wiki/log.md` is appended during apply. `wiki/index.md` maintenance utilities exist, but full automatic index reconstruction is not yet fully integrated.
 - Older versions of `scripts/process-raw.js` modified frontmatter in `raw/`. Current versions use an external ledger. If you previously ran batch processing, review your `raw/` notes for `librarian.processed` fields that were added by the old script.
 
 ## Safer Operating Practices

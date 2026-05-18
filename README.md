@@ -35,7 +35,7 @@ vault/
   templates/
   home.md
 
-  raw/          # Fuentes inmutables. Librarian lee, nunca reescribe.
+  raw/          # Fuentes inmutables aprobadas explícitamente para IA.
   wiki/         # Páginas mantenidas por IA.
     index.md
     log.md
@@ -50,21 +50,21 @@ vault/
   memory/       # Memoria persistente del agente/sesiones.
   configs/      # Configuración visible/editable de Librarian.
   .librarian/   # Estado interno, índices, cache, locks, propuestas.
-    state/      # Índice y ledger de procesados.
+    state/      # Índices y ledger de procesados.
     proposals/  # Fuente de verdad de propuestas.
     transactions/ # Registros transaccionales de apply.
 ```
 
 Reglas base:
 
-- `raw/` es la fuente de verdad. Librarian nunca modifica archivos aquí.
+- `raw/` es la frontera explícita de consentimiento para procesamiento con IA. Librarian nunca modifica archivos aquí.
 - `wiki/` es conocimiento mantenido. Solo se modifica vía approve/apply.
 - `reports/` guarda diagnósticos y logs de chat.
 - `reviews/` es una superficie humana de revisión/export. No es la fuente de verdad de propuestas.
 - `.librarian/proposals/` es la fuente de verdad de propuestas.
 - `.librarian/transactions/` registra intentos de apply y metadata de recuperación.
 - `wiki/` solo se modifica vía approve/apply.
-- `inbox/` sigue siendo captura humana; mové a `raw/` solo las fuentes que querés que Librarian procese.
+- `inbox/`, `daily/` y PARA son la capa humana; mové o copiá a `raw/` solo las fuentes que querés que Librarian procese.
 
 ## Qué Funciona Hoy
 
@@ -75,8 +75,8 @@ Reglas base:
 - Reportes de estado y logs de chat persistidos bajo `reports/`.
 - Configuración local-first compatible con OpenAI, apuntando a Ollama por defecto.
 - `librarian init` scaffolding idempotente con templates del Second Brain Ecosystem.
-- Post-apply hooks: `wiki/index.md` y `wiki/log.md` se actualizan automáticamente.
-- Exportación automática de propuestas aprobadas a `reviews/` como Markdown legible en Obsidian.
+- Post-apply hooks: `wiki/log.md` se actualiza durante apply; `wiki/index.md` todavía requiere mantenimiento/rebuild explícito según el flujo usado.
+- Exportación automática de propuestas a `reviews/` como Markdown legible en Obsidian.
 - Configuración vault-local desde `vault/configs/librarian.yaml`.
 - Propuestas multi-file (múltiples targets atómicos en una sola propuesta).
 - `save-chat` para convertir respuestas Q&A en propuestas wiki revisables.
@@ -119,7 +119,7 @@ Ver [SAFETY.md](SAFETY.md) para el modelo completo de seguridad.
    ```bash
    librarian init
    ```
-   Esto crea `raw/`, `wiki/`, `reports/`, `.librarian/` y templates. Es idempotente — podés correrlo de nuevo sin problema.
+   Esto crea la capa humana (`inbox/`, `daily/`, PARA), `raw/`, `wiki/`, `reports/`, `reviews/`, `.librarian/`, `_assets/` y templates. Es idempotente — podés correrlo de nuevo sin problema.
 
 4. **Construí el índice**:
    ```bash
@@ -160,7 +160,7 @@ Ver [SAFETY.md](SAFETY.md) para el modelo completo de seguridad.
    ```bash
    librarian init
    ```
-   This creates `raw/`, `wiki/`, `reports/`, `.librarian/`, and templates. It's idempotent — safe to run again.
+   This creates the human layer (`inbox/`, `daily/`, PARA), `raw/`, `wiki/`, `reports/`, `reviews/`, `.librarian/`, `_assets/`, and templates. It's idempotent — safe to run again.
 
 4. **Build the index**:
    ```bash
@@ -349,10 +349,10 @@ Estados de propuesta: `pending → approved → applying → applied`, `pending 
 
 #### Desde la TUI
 
-Dentro de la TUI, `/process` procesa todas las notas pendientes de `raw/`, las clasifica con IA, y las escribe directamente al wiki. Las notas duplicadas se omiten automáticamente.
+Dentro de la TUI, `/process` inspecciona las fuentes aprobadas en `raw/`, las clasifica con IA, genera propuestas en `.librarian/proposals/` y exporta una versión legible en `reviews/`. No escribe directo al wiki. Las notas duplicadas se omiten automáticamente.
 
 ```
-/process    → procesa notas y escribe al wiki
+/process    → genera propuestas revisables desde raw/
 ```
 
 #### Desde la CLI

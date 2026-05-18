@@ -11,7 +11,8 @@
 
 ## Vault Structure
 
-- **Raw Inbox** (`raw/`) — Unprocessed notes waiting to be curated.
+- **Raw Sources** (`raw/`) — Immutable sources explicitly approved for Librarian processing.
+- **Human Layer** (`inbox/`, `daily/`, PARA) — Human notes and organization. Librarian does not process these directly.
 - **Wiki** (`wiki/`) — Curated, interconnected notes organized by category.
 - **Reports** (`reports/`) — Generated reports (stats, chat logs, health).
 - **Index** — Cached representation of the vault's note graph. Built by the Indexer, queried via the Query API.

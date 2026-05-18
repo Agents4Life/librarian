@@ -4,14 +4,16 @@ import { join } from 'node:path';
 import { defaultConfig } from '../config.js';
 
 const DIRECTORIES: string[] = [
-  // raw/ — everything the user writes (PARA + daily + inbox)
+  // human layer — Librarian never processes these directly
+  '1-proyectos',
+  '2-areas',
+  '3-recursos',
+  '4-archivo',
+  'daily',
+  'inbox',
+  '_assets',
+  // raw/ — explicit consent boundary for AI-processable sources
   'raw',
-  'raw/1-proyectos',
-  'raw/2-areas',
-  'raw/3-recursos',
-  'raw/4-archivo',
-  'raw/daily',
-  'raw/inbox',
   // wiki/ — curated and maintained by Librarian
   'wiki',
   'wiki/conceptos',
@@ -26,6 +28,7 @@ const DIRECTORIES: string[] = [
   'memory',
   'configs',
   '.librarian',
+  '.librarian/state',
   '.librarian/proposals',
   '.librarian/transactions',
   'templates',
@@ -123,16 +126,22 @@ tags: []
 ## 1. Clean Inbox
 
 - [ ] Move inbox notes to their PARA home
-- [ ] Move valuable AI sources to \`raw/\`
+- [ ] Copy or move valuable AI sources to \`raw/\` only after explicit consent
 - [ ] Delete notes that are no longer useful
 
-## 2. Review Projects
+## 2. Review Librarian Proposals
+
+- [ ] Read proposal exports in \`reviews/\`
+- [ ] Approve/reject proposals via CLI
+- [ ] Apply approved proposals intentionally
+
+## 3. Review Projects
 
 - [ ] Update active project notes
 - [ ] Move completed projects to archive
 - [ ] Create new project notes if needed
 
-## 3. Plan Next Week
+## 4. Plan Next Week
 
 - [ ] Review calendar and commitments
 - [ ] Set 3 priorities for the week
@@ -172,9 +181,6 @@ source_type:
 author:
 status: raw
 tags: []
-librarian:
-  processed: false
-  status: active
 ---
 
 # {{title}}
@@ -305,7 +311,7 @@ const FILE_TEMPLATES: FileTemplate[] = [
     content: () => LIBRARIAN_YAML,
   },
   {
-    relativePath: '.librarian/state.json',
+    relativePath: '.librarian/state/init.json',
     content: () =>
       JSON.stringify(
         {

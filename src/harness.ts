@@ -12,7 +12,7 @@ import { createSemanticTool } from "./tools/semantic.tool.js";
 import { createWikilinksTool } from "./tools/wikilinks.tool.js";
 import { createSearchTool } from "./tools/search.tool.js";
 import { FileProposalStore } from "./proposals/proposal-store.js";
-import { applyProposalToVault } from "./review/apply-proposal.js";
+import { exportProposalToReview } from "./review/export-review.js";
 import path from "node:path";
 
 const resolveVaultPath = (basePath?: string) => basePath ?? defaultConfig.vaultPath;
@@ -149,7 +149,7 @@ export const runLibrarian = async (
       break;
 
     case "process-notes":
-      steps.push({ kind: "act", message: "Inspeccionar raw inbox", tool: "ingest.inspectRawInbox" });
+      steps.push({ kind: "act", message: "Inspeccionar fuentes aprobadas en raw/", tool: "ingest.inspectRawInbox" });
       const inbox = await inspectRawInbox(vaultPath, indexContext.query);
       const curatable = inbox.notes.filter((n) => n.recommendation === "curate");
 
@@ -177,14 +177,8 @@ export const runLibrarian = async (
           if (signal?.aborted) { cancelled = true; break; }
           const stored = await store.create({ sourcePath: p.source, proposal: p });
           if (signal?.aborted) { cancelled = true; break; }
-          const approved = await store.updateStatus(stored.id, 'approved');
-          if (signal?.aborted) { cancelled = true; break; }
-          const applyResult = await applyProposalToVault(vaultPath, approved);
-          if (!applyResult.success) {
-            errors++;
-          } else {
-            proposed++;
-          }
+          await exportProposalToReview(vaultPath, stored);
+          proposed++;
         } catch {
           errors++;
         }
@@ -192,7 +186,7 @@ export const runLibrarian = async (
 
       const cancelMsg = cancelled ? ` Cancelado después de ${proposed} notas.` : '';
       result = {
-        message: `Se procesaron ${proposed} notas. ${skipped} duplicadas omitidas.${errors > 0 ? ` ${errors} errores.` : ''}${cancelMsg}`,
+        message: `Se generaron ${proposed} propuestas para revisión. ${skipped} duplicadas omitidas.${errors > 0 ? ` ${errors} errores.` : ''}${cancelMsg}`,
         total: curatable.length,
         proposed,
         skipped,
