@@ -25,7 +25,7 @@ Librarian is experimental alpha software for personal knowledge bases. Treat it 
 
 ## Current Write Behavior
 
-Some commands are read-only. Some commands write generated reports, internal state, or reviewable proposals. The only current flow that writes wiki pages is `librarian apply <id>` after a proposal has been approved.
+Some commands are read-only. Some commands write generated reports, internal state, or reviewable proposals. The `/process` command automatically approves and applies proposals to the wiki.
 
 Read-oriented flows include search, incomplete-note listing, stale-note listing, graph inspection, orphan listing, `librarian index status`, and most chat/query paths.
 
@@ -34,10 +34,10 @@ State/report write paths include:
 - `librarian index rebuild`, which writes `.librarian/state/index.json` and index metadata.
 - Status/report flows, which may write Markdown diagnostics under `reports/`.
 - Chat persistence, which writes chat logs under `reports/chats/`.
-- Batch curation and TUI `/process`, which write proposals under `.librarian/proposals/` and readable exports under `reviews/` in live mode.
+- TUI `/process`, which classifies raw notes, auto-approves proposals, and writes wiki pages under `wiki/`. Proposals are stored in `.librarian/proposals/` for audit purposes and exported to `reviews/`.
 - Proposal apply through `librarian apply <id>`, which writes an approved target under `wiki/`, transaction records under `.librarian/transactions/`, and the processed ledger under `.librarian/state/processed.json`.
 
-Batch processing supports `--dry-run`; use it before live mode. Live batch processing generates proposals only. It does not write directly to `wiki/`.
+Batch processing supports `--dry-run`; use it before live mode.
 
 Processing state is tracked in `.librarian/state/processed.json` (not in `raw/`). The batch script does not modify files in `raw/`. Older versions wrote `librarian.processed: true` into raw frontmatter; if you ran those versions, some raw notes may already contain that field. The current version reads that field for backward compatibility but never writes to `raw/`.
 

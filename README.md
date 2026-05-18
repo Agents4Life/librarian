@@ -70,8 +70,8 @@ Reglas base:
 
 - TUI interactiva y consultas CLI one-shot.
 - Indexado del vault, búsqueda en wiki, backlinks, stats de grafo, notas stale, notas incompletas y notas huérfanas.
-- Curaduría proposal-first de notas raw en `.librarian/proposals/`.
-- Flujo de revisión con `preview`, `approve`, `reject`, `apply`, `retry` y `reset`.
+- Curaduría automática de notas raw: `/process` clasifica, aprueba y aplica directamente al wiki.
+- Flujo de revisión manual disponible con `preview`, `approve`, `reject`, `apply`, `retry` y `reset`.
 - Reportes de estado y logs de chat persistidos bajo `reports/`.
 - Configuración local-first compatible con OpenAI, apuntando a Ollama por defecto.
 - `librarian init` scaffolding idempotente con templates del Second Brain Ecosystem.
@@ -327,7 +327,7 @@ librarian index status    # Mostrar frescura del índice y metadata de caches
 librarian index rebuild   # Reconstruir el índice persistido del vault
 ```
 
-Librarian usa un flujo proposal-first para todas las escrituras al vault:
+Librarian usa un flujo de procesamiento automático para `/process` y un flujo proposal-first para operaciones manuales:
 
 ```bash
 librarian proposals                      # Listar todas las propuestas
@@ -349,10 +349,10 @@ Estados de propuesta: `pending → approved → applying → applied`, `pending 
 
 #### Desde la TUI
 
-Dentro de la TUI, `/process` inspecciona las fuentes aprobadas en `raw/`, las clasifica con IA, genera propuestas en `.librarian/proposals/` y exporta una versión legible en `reviews/`. No escribe directo al wiki. Las notas duplicadas se omiten automáticamente.
+Dentro de la TUI, `/process` inspecciona las fuentes aprobadas en `raw/`, las clasifica con IA, y las escribe directamente al wiki. Las notas duplicadas se omiten automáticamente. Las propuestas se guardan en `.librarian/proposals/` con fines de auditoría.
 
 ```
-/process    → genera propuestas revisables desde raw/
+/process    → procesa notas raw y las escribe al wiki
 ```
 
 #### Desde la CLI
