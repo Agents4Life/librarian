@@ -151,15 +151,15 @@ export const runLibrarian = async (
 
     case "process-notes":
       steps.push({ kind: "act", message: "Inspeccionar fuentes aprobadas en raw/", tool: "ingest.inspectRawInbox" });
-      const inbox = await inspectRawInbox(vaultPath, indexContext.query);
-      const curatable = inbox.notes.filter((n) => n.recommendation === "curate");
+      const initialInbox = await inspectRawInbox(vaultPath, indexContext.query);
+      const initialCuratable = initialInbox.notes.filter((n) => n.recommendation === "curate");
 
-      if (curatable.length === 0) {
+      if (initialCuratable.length === 0) {
         result = { message: "No hay notas pendientes para procesar.", total: 0, proposed: 0, skipped: 0, errors: 0 };
         break;
       }
 
-      steps.push({ kind: "act", message: `Procesar ${curatable.length} notas`, tool: "curation.proposeWikiCurations" });
+      steps.push({ kind: "act", message: `Procesar hasta ${initialCuratable.length} notas`, tool: "curation.proposeWikiCurations" });
 
       const store = new FileProposalStore(vaultPath);
       const service = new ReviewService(store, vaultPath);
@@ -167,12 +167,18 @@ export const runLibrarian = async (
       let skipped = 0;
       let errors = 0;
       let cancelled = false;
+      let total = initialCuratable.length;
 
-      for (let i = 0; i < curatable.length; i++) {
+      for (let i = 0; i < total; i++) {
         if (signal?.aborted) { cancelled = true; break; }
 
-        const note = curatable[i];
-        process.stdout.write(`\r  Procesando ${i + 1}/${curatable.length}: ${path.basename(note.file)}...`);
+        const freshInbox = await inspectRawInbox(vaultPath, indexContext.query);
+        const freshCuratable = freshInbox.notes.filter((n) => n.recommendation === "curate");
+
+        if (freshCuratable.length === 0) break;
+
+        const note = freshCuratable[0];
+        process.stdout.write(`\r  Procesando ${i + 1}/${total}: ${path.basename(note.file)}...           `);
 
         try {
           const { proposals } = await proposeWikiCurations(vaultPath, 1, indexContext.query, signal);
@@ -200,12 +206,12 @@ export const runLibrarian = async (
         }
       }
 
-      if (curatable.length > 0) process.stdout.write('\n');
+      if (total > 0) process.stdout.write('\n');
 
       const cancelMsg = cancelled ? ` Cancelado después de ${proposed} notas.` : '';
       result = {
         message: `Se procesaron ${proposed} notas en la wiki. ${skipped} duplicadas omitidas.${errors > 0 ? ` ${errors} errores.` : ''}${cancelMsg}`,
-        total: curatable.length,
+        total,
         proposed,
         skipped,
         errors,
