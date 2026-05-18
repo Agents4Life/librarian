@@ -412,10 +412,8 @@ export const App: React.FC = () => {
       const cmdStart = Date.now();
       const ac = new AbortController();
       abortRef.current = ac;
-      let runResult: unknown = null;
       try {
         const run = await runLibrarian(parsed.command.slash === '/search' ? `buscar ${parsed.args}` : input, undefined, undefined, undefined, ac.signal);
-        runResult = run.result;
         const elapsed = Date.now() - cmdStart;
 
         if (CHAT_INTENTS.has(parsed.command.slash)) {
@@ -439,13 +437,6 @@ export const App: React.FC = () => {
         abortRef.current = null;
         if (parsed.command.slash === '/process') {
           await rebuildIndex();
-          if (runResult) {
-            const res = runResult as Record<string, unknown>;
-            const msg = ac.signal.aborted
-              ? `Procesamiento cancelado. Se procesaron ${res.proposed ?? 0} notas antes de cancelar.`
-              : undefined;
-            if (msg) sendToChat('/process', msg, Date.now() - cmdStart);
-          }
         }
         dispatch({ type: 'SET_LOADING', loading: false });
       }
