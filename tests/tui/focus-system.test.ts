@@ -1,99 +1,57 @@
-import { describe, it, expect } from 'node:test';
-import { renderHook } from '@testing-library/react';
-import { useState, useCallback, useReducer } from 'react';
-import { useAppState } from '../state.js';
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { appReducer, createInitialState, navigateTo } from '../../src/tui/state.js';
+import type { AppState, WorkspaceNode } from '../../src/tui/state.js';
 
-// Mock component for testing
-const TestComponent: React.FC = () => {
-  const { state, dispatch } = useAppState();
-  return React.createElement('div', null, JSON.stringify(state));
-};
+describe('Focus and Navigation System', () => {
+  const base = createInitialState('/test/vault');
 
-describe('useAppState Hook', () => {
-  it('should provide state and dispatch function', () => {
-    // This is a basic test - in a real test we'd need to wrap in AppStateContext.Provider
-    // For now, we'll test that the hook is defined and has the expected structure
-    expect(useAppState).toBeDefined();
-    expect(typeof useAppState).toBe('function');
+  describe('navigateTo', () => {
+    it('should append node to workspace and history', () => {
+      const node: WorkspaceNode = { type: 'help', id: 'new-help', createdAt: Date.now() };
+      const patch = navigateTo(node, base);
+      assert.ok(patch.workspace!.includes(node));
+      assert.equal(patch.activeNodeId, 'new-help');
+      assert.deepEqual(patch.navigationHistory, [...base.navigationHistory, 'new-help']);
+      assert.equal(patch.historyIndex, base.navigationHistory.length);
+    });
+
+    it('should truncate forward history when navigating from middle', () => {
+      const stateWithHistory: AppState = {
+        ...base,
+        navigationHistory: ['a', 'b', 'c'],
+        historyIndex: 0,
+      };
+      const node: WorkspaceNode = { type: 'help', id: 'd', createdAt: Date.now() };
+      const patch = navigateTo(node, stateWithHistory);
+      assert.deepEqual(patch.navigationHistory, ['a', 'd']);
+      assert.equal(patch.historyIndex, 1);
+    });
   });
-});
 
-describe('Focus System Integration', () => {
-  it('should maintain focused pane state', () => {
-    const TestFocusComponent = () => {
-      const [focusedPane, setFocusedPane] = useState<'composer' | 'navigation'>('composer');
-      
-      const handleEsc = useCallback(() => {
-        setFocusedPane('navigation');
-      }, []);
-      
-      const handleEnter = useCallback(() => {
-        setFocusedPane('composer');
-      }, []);
-      
-      return React.createElement('div', {
-        'data-focused-pane': focusedPane,
-        onClick: handleEsc,
-        onKeyPress: handleEnter
-      });
-    };
-    
-    expect(TestFocusComponent).toBeDefined();
+  describe('focused pane cycling', () => {
+    it('should switch between composer and navigation', () => {
+      const nav = appReducer(base, { type: 'SET_FOCUSED_PANE', pane: 'navigation' });
+      assert.equal(nav.focusedPane, 'navigation');
+      const back = appReducer(nav, { type: 'SET_FOCUSED_PANE', pane: 'composer' });
+      assert.equal(back.focusedPane, 'composer');
+    });
   });
-});
 
-describe('Navigation System', () => {
-  it('should track navigation history', () => {
-    const TestNavigationComponent = () => {
-      const [navigationHistory, setNavigationHistory] = useState<string[]>([]);
-      const [historyIndex, setHistoryIndex] = useState(-1);
-      const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
-      
-      const navigateTo = useCallback((nodeId: string) => {
-        const newHistory = [...navigationHistory.slice(0, historyIndex + 1), nodeId];
-        setNavigationHistory(newHistory);
-        setActiveNodeId(nodeId);
-        setHistoryIndex(newHistory.length - 1);
-      }, [navigationHistory, historyIndex]);
-      
-      const navigateBack = useCallback(() => {
-        if (historyIndex > 0) {
-          const prevIndex = historyIndex - 1;
-          setHistoryIndex(prevIndex);
-          setActiveNodeId(navigationHistory[prevIndex]);
-        }
-      }, [historyIndex, navigationHistory]);
-      
-      const navigateForward = useCallback(() => {
-        if (historyIndex < navigationHistory.length - 1) {
-          const nextIndex = historyIndex + 1;
-          setHistoryIndex(nextIndex);
-          setActiveNodeId(navigationHistory[nextIndex]);
-        }
-      }, [historyIndex, navigationHistory]);
-      
-      return React.createElement('div', {
-        'data-history': JSON.stringify(navigationHistory),
-        'data-index': historyIndex,
-        'data-active': activeNodeId
-      });
-    };
-    
-    expect(TestNavigationComponent).toBeDefined();
-  });
-});
+  describe('integration: navigate then go back and forward', () => {
+    it('should maintain correct history through back/forward', () => {
+      let state = base;
+      const nodeA: WorkspaceNode = { type: 'help', id: 'a', createdAt: 1 };
+      const nodeB: WorkspaceNode = { type: 'help', id: 'b', createdAt: 2 };
+      state = { ...state, ...navigateTo(nodeA, state) } as AppState;
+      state = { ...state, ...navigateTo(nodeB, state) } as AppState;
+      assert.equal(state.activeNodeId, 'b');
 
-describe('Integration with Renderers', () => {
-  it('should allow renderers to check focused pane', () => {
-    const mockRenderer = (state: any) => {
-      if (state.focusedPane === 'composer') {
-        return React.createElement('div', null, 'Composer mode');
-      } else {
-        return React.createElement('div', null, 'Navigation mode');
-      }
-    };
-    
-    expect(mockRenderer).toBeDefined();
-    expect(typeof mockRenderer).toBe('function');
+      state = appReducer(state, { type: 'NAVIGATE_BACK' });
+      assert.equal(state.activeNodeId, 'a');
+
+      state = appReducer(state, { type: 'NAVIGATE_FORWARD' });
+      assert.equal(state.activeNodeId, 'b');
+    });
   });
 });

@@ -67,4 +67,47 @@ describe('formatRunResult', () => {
     assert.ok(text.includes('/users/test/Notes/wiki/B.md'));
     assert.ok(!text.includes('obsidian://'));
   });
+
+  it('formats cancelled process result with cancellation message', () => {
+    const result = {
+      message: 'Se procesaron 3 notas. 1 duplicadas omitidas. Cancelado después de 3 notas.',
+      total: 10,
+      proposed: 3,
+      skipped: 1,
+      errors: 0,
+    };
+    const text = formatRunResult(result);
+    assert.ok(text.includes('Cancelado'));
+    assert.ok(text.includes('3 notas'));
+  });
+
+  it('strips system-reminder tags from LLM content', () => {
+    const result = {
+      content: 'Respuesta útil.<system-reminder>some injected content</system-reminder>',
+    };
+    const text = formatRunResult(result);
+    assert.equal(text, 'Respuesta útil.');
+    assert.ok(!text.includes('system-reminder'));
+  });
+
+  it('strips system-reminder tags from message', () => {
+    const result = {
+      message: 'Procesado.<system-reminder>injected</system-reminder>Hecho.',
+      hint: 'Usá /process',
+    };
+    const text = formatRunResult(result);
+    assert.ok(!text.includes('system-reminder'));
+    assert.ok(text.includes('Procesado'));
+    assert.ok(text.includes('Hecho'));
+  });
+
+  it('formats vault status with stats', () => {
+    const result = {
+      stats: { total_files: 100, wiki_pages: 60, raw_files: 40 },
+    };
+    const text = formatRunResult(result);
+    assert.ok(text.includes('100 archivos'));
+    assert.ok(text.includes('60 paginas wiki'));
+    assert.ok(text.includes('40 archivos sin procesar'));
+  });
 });
