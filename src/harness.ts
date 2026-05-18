@@ -14,6 +14,7 @@ import { createSearchTool } from "./tools/search.tool.js";
 import { FileProposalStore } from "./proposals/proposal-store.js";
 import { ReviewService } from "./review/review-service.js";
 import { exportProposalToReview } from "./review/export-review.js";
+import { markProcessed } from "./review/processed-ledger.js";
 import path from "node:path";
 
 const resolveVaultPath = (basePath?: string) => basePath ?? defaultConfig.vaultPath;
@@ -187,6 +188,7 @@ export const runLibrarian = async (
           const p = proposals[0];
           if (p.type === 'skip') {
             skipped++;
+            try { await markProcessed(vaultPath, p.source, { proposalId: 'skip', targetPath: '', operationId: 'skip' }); } catch {}
             continue;
           }
 
@@ -199,10 +201,16 @@ export const runLibrarian = async (
             proposed++;
           } else {
             errors++;
+            process.stdout.write(`\n  ✗ Error aplicando ${path.basename(note.file)}: ${applied.status}\n`);
           }
-        } catch {
+        } catch (err) {
           if (signal?.aborted) { cancelled = true; break; }
           errors++;
+          const errMsg = err instanceof Error ? err.message : String(err);
+          process.stdout.write(`\n  ✗ Error en ${path.basename(note.file)}: ${errMsg}\n`);
+          try {
+            await markProcessed(vaultPath, note.file, { proposalId: 'error', targetPath: '', operationId: 'error' });
+          } catch {}
         }
       }
 
