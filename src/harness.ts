@@ -160,7 +160,6 @@ export const runLibrarian = async (
       }
 
       steps.push({ kind: "act", message: `Procesar ${curatable.length} notas`, tool: "curation.proposeWikiCurations" });
-      const { proposals } = await proposeWikiCurations(vaultPath, curatable.length, indexContext.query, signal);
 
       const store = new FileProposalStore(vaultPath);
       const service = new ReviewService(store, vaultPath);
@@ -169,18 +168,24 @@ export const runLibrarian = async (
       let errors = 0;
       let cancelled = false;
 
-      for (const p of proposals) {
+      for (let i = 0; i < curatable.length; i++) {
         if (signal?.aborted) { cancelled = true; break; }
-        if (p.type === 'skip') {
-          skipped++;
-          continue;
-        }
-        try {
-          if (signal?.aborted) { cancelled = true; break; }
-          const stored = await store.create({ sourcePath: p.source, proposal: p });
-          if (signal?.aborted) { cancelled = true; break; }
-          await exportProposalToReview(vaultPath, stored);
 
+        const note = curatable[i];
+        process.stdout.write(`\r  Procesando ${i + 1}/${curatable.length}: ${path.basename(note.file)}...`);
+
+        try {
+          const { proposals } = await proposeWikiCurations(vaultPath, 1, indexContext.query, signal);
+          if (proposals.length === 0 || signal?.aborted) { cancelled = true; break; }
+
+          const p = proposals[0];
+          if (p.type === 'skip') {
+            skipped++;
+            continue;
+          }
+
+          const stored = await store.create({ sourcePath: p.source, proposal: p });
+          await exportProposalToReview(vaultPath, stored);
           await service.approve(stored.id);
           const applied = await service.apply(stored.id);
 
@@ -190,9 +195,12 @@ export const runLibrarian = async (
             errors++;
           }
         } catch {
+          if (signal?.aborted) { cancelled = true; break; }
           errors++;
         }
       }
+
+      if (curatable.length > 0) process.stdout.write('\n');
 
       const cancelMsg = cancelled ? ` Cancelado después de ${proposed} notas.` : '';
       result = {

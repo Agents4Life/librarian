@@ -412,19 +412,16 @@ export const App: React.FC = () => {
       const cmdStart = Date.now();
       const ac = new AbortController();
       abortRef.current = ac;
+      let runResult: unknown = null;
       try {
         const run = await runLibrarian(parsed.command.slash === '/search' ? `buscar ${parsed.args}` : input, undefined, undefined, undefined, ac.signal);
+        runResult = run.result;
         const elapsed = Date.now() - cmdStart;
 
         if (CHAT_INTENTS.has(parsed.command.slash)) {
           const responseText = formatRunResult(run.result, state.vaultPath);
           sendToChat(input, responseText, elapsed);
           dispatch({ type: 'PUSH_ACTIVITY', entry: { icon: '✓', color: theme.success, message: `Listo (${formatElapsed(elapsed)})` } });
-
-          const res = run.result as Record<string, unknown> | null;
-          if (parsed.command.slash === '/process' && res) {
-            await rebuildIndex();
-          }
         } else {
           const node = mapRunToNode(run);
           if (node) {
@@ -433,10 +430,23 @@ export const App: React.FC = () => {
           }
         }
       } catch (error) {
-        if (ac.signal.aborted) return;
-        uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
+        if (ac.signal.aborted) {
+          uiEventBus.emit({ type: 'agent:error', error: 'Procesamiento cancelado' });
+        } else {
+          uiEventBus.emit({ type: 'agent:error', error: error instanceof Error ? error.message : String(error) });
+        }
       } finally {
         abortRef.current = null;
+        if (parsed.command.slash === '/process') {
+          await rebuildIndex();
+          if (runResult) {
+            const res = runResult as Record<string, unknown>;
+            const msg = ac.signal.aborted
+              ? `Procesamiento cancelado. Se procesaron ${res.proposed ?? 0} notas antes de cancelar.`
+              : undefined;
+            if (msg) sendToChat('/process', msg, Date.now() - cmdStart);
+          }
+        }
         dispatch({ type: 'SET_LOADING', loading: false });
       }
       return;
