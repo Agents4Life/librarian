@@ -89,7 +89,7 @@ export const App: React.FC = () => {
     dispatch({ type: 'SET_INDEX_STATUS', status: 'rebuilding' });
     uiEventBus.emit({ type: 'agent:thinking', message: 'Actualizando indice...' });
     try {
-      const ctx = await createIndexContext(state.vaultPath);
+      const ctx = await createIndexContext(state.vaultPath, true);
       dispatch({ type: 'SET_LAST_INDEX_AT', timestamp: Date.now() });
       uiEventBus.emit({ type: 'index:rebuilt', noteCount: Object.keys(ctx.index.notes).length });
 

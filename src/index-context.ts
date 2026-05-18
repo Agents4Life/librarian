@@ -15,15 +15,16 @@ export type IndexContext = {
   query: QueryApi;
 };
 
-export const buildOrLoadIndex = async (vaultPath: string): Promise<NoteIndex> => {
-  const existing = await loadIndex(vaultPath);
+export const buildOrLoadIndex = async (vaultPath: string, force = false): Promise<NoteIndex> => {
+  if (!force) {
+    const existing = await loadIndex(vaultPath);
 
-  if (existing && existing.vaultPath === vaultPath) {
-    const currentFingerprint = await computeVaultFingerprint(vaultPath);
-    if (existing.vaultFingerprint === currentFingerprint) {
-      return existing;
+    if (existing && existing.vaultPath === vaultPath) {
+      const currentFingerprint = await computeVaultFingerprint(vaultPath);
+      if (existing.vaultFingerprint === currentFingerprint) {
+        return existing;
+      }
     }
-    // Fingerprint mismatch — vault changed, rebuild
   }
 
   const index = await buildIndex(vaultPath);
@@ -32,8 +33,8 @@ export const buildOrLoadIndex = async (vaultPath: string): Promise<NoteIndex> =>
   return index;
 };
 
-export const createIndexContext = async (vaultPath: string): Promise<IndexContext> => {
-  const index = await buildOrLoadIndex(vaultPath);
+export const createIndexContext = async (vaultPath: string, force = false): Promise<IndexContext> => {
+  const index = await buildOrLoadIndex(vaultPath, force);
   const query = createQueryApi(index);
   return { index, query };
 };
