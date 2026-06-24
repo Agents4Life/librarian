@@ -13,7 +13,6 @@ const createVault = async () => {
   await mkdir(path.join(vaultPath, "raw"), { recursive: true });
   await mkdir(path.join(vaultPath, "wiki", "conceptos"), { recursive: true });
   await mkdir(path.join(vaultPath, "wiki", "entidades"), { recursive: true });
-  await mkdir(path.join(vaultPath, "reports"), { recursive: true });
 
   await writeFile(
     path.join(vaultPath, "raw", "idea.md"),
@@ -28,11 +27,6 @@ const createVault = async () => {
   await writeFile(
     path.join(vaultPath, "wiki", "entidades", "solid.md"),
     ["---", "tags: [software]", "---", "", "# SOLID", "", "Five principles. Used in [[Clean Architecture]]."].join("\n"),
-  );
-
-  await writeFile(
-    path.join(vaultPath, "reports", "report.md"),
-    ["---", "---", "", "# Report", "", "Status report."].join("\n"),
   );
 
   // Isolated note with no links or backlinks — ensures getOrphans returns >= 1
