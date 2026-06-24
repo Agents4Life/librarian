@@ -35,7 +35,8 @@ test("wikilinks graph only includes wiki pages", async () => {
 
   const stats = await tool.getGraphStats();
 
-  assert.equal(stats.total_nodes, 4);
+  // daily/ and templates/ are outside INDEX_ROOTS so only wiki pages count
+  assert.equal(stats.total_nodes, 2);
   assert.ok(stats.total_edges >= 1);
 });
 
