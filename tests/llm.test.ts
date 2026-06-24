@@ -4,7 +4,11 @@ import assert from 'node:assert/strict';
 
 import { createLlmClient } from '../src/llm.js';
 
-test('llm client sends chat requests to ollama-compatible api', async () => {
+/** Close an HTTP server, resolving once it's fully shut down. */
+const closeServer = (server: ReturnType<typeof createServer>) =>
+  new Promise<void>((resolve) => server.close(() => resolve()));
+
+test('llm client sends chat requests to ollama-compatible api', async (t) => {
   const server = createServer((req, res) => {
     if (req.url === '/v1/chat/completions' && req.method === 'POST') {
       let body = '';
@@ -25,7 +29,7 @@ test('llm client sends chat requests to ollama-compatible api', async () => {
 
     if (req.url === '/v1/models') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ data: [] }));
+      res.end(JSON.stringify({ data: [{ id: 'qwen3.5:4b' }] }));
       return;
     }
 
@@ -34,6 +38,8 @@ test('llm client sends chat requests to ollama-compatible api', async () => {
   });
 
   await new Promise<void>((resolve) => server.listen(0, resolve));
+  t.after(() => closeServer(server));
+
   const address = server.address();
 
   if (typeof address !== 'object' || address === null) {
@@ -49,14 +55,13 @@ test('llm client sends chat requests to ollama-compatible api', async () => {
   const health = await client.healthcheck();
   const chat = await client.chat([{ role: 'user', content: 'hola' }]);
 
-  assert.equal(health.ok, true);
+  assert.equal(health.status, 'ready');
+  assert.equal(health.model, 'qwen3.5:4b');
   assert.equal(chat.content, 'respuesta');
   assert.equal(chat.model, 'qwen3.5:4b');
-
-  await new Promise<void>((resolve) => server.close(() => resolve()));
 });
 
-test('llm client falls back to the secondary model when the primary fails', async () => {
+test('llm client falls back to the secondary model when the primary fails', async (t) => {
   const seenModels: string[] = [];
   const server = createServer((req, res) => {
     if (req.url === '/v1/chat/completions' && req.method === 'POST') {
@@ -91,6 +96,8 @@ test('llm client falls back to the secondary model when the primary fails', asyn
   });
 
   await new Promise<void>((resolve) => server.listen(0, resolve));
+  t.after(() => closeServer(server));
+
   const address = server.address();
 
   if (typeof address !== 'object' || address === null) {
@@ -109,11 +116,9 @@ test('llm client falls back to the secondary model when the primary fails', asyn
   assert.deepEqual(seenModels, ['qwen3.5:4b', 'llama3.1:8b']);
   assert.equal(chat.content, 'respuesta secundaria');
   assert.equal(chat.model, 'llama3.1:8b');
-
-  await new Promise<void>((resolve) => server.close(() => resolve()));
 });
 
-test('llm client falls back to the next ollama base url when the first one fails', async () => {
+test('llm client falls back to the next ollama base url when the first one fails', async (t) => {
   const primary = createServer((req, res) => {
     if (req.url === '/v1/chat/completions' && req.method === 'POST') {
       res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -150,6 +155,8 @@ test('llm client falls back to the next ollama base url when the first one fails
 
   await new Promise<void>((resolve) => primary.listen(0, resolve));
   await new Promise<void>((resolve) => secondary.listen(0, resolve));
+  t.after(() => closeServer(primary));
+  t.after(() => closeServer(secondary));
 
   const primaryAddress = primary.address();
   const secondaryAddress = secondary.address();
@@ -168,7 +175,4 @@ test('llm client falls back to the next ollama base url when the first one fails
   const chat = await client.chat([{ role: 'user', content: 'hola' }]);
 
   assert.equal(chat.content, 'respuesta por url secundaria');
-
-  await new Promise<void>((resolve) => primary.close(() => resolve()));
-  await new Promise<void>((resolve) => secondary.close(() => resolve()));
 });
