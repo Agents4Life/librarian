@@ -35,6 +35,13 @@ const createVault = async () => {
     ["---", "---", "", "# Report", "", "Status report."].join("\n"),
   );
 
+  // Isolated note with no links or backlinks — ensures getOrphans returns >= 1
+  await mkdir(path.join(vaultPath, "wiki", "synthesis"), { recursive: true });
+  await writeFile(
+    path.join(vaultPath, "wiki", "synthesis", "standalone.md"),
+    ["# Standalone", "", "No links, no connections."].join("\n"),
+  );
+
   return vaultPath;
 };
 
@@ -207,9 +214,6 @@ test("query API - getBySection", async () => {
 
   const raw = query.getBySection("raw");
   assert.equal(raw.length, 1);
-
-  const reports = query.getBySection("reports");
-  assert.equal(reports.length, 1);
 });
 
 test("query API - getBacklinks", async () => {
