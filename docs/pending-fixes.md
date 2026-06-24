@@ -1,39 +1,22 @@
 # Pending Fixes
 
-Estado de tests y issues conocidos al 2026-05-23.
+Estado de tests y issues conocidos al 2026-06-24.
 
-## Tests Failing
+## Tests
 
-### 1. Indexer — 6 failures en `tests/indexer.test.ts`
+Todos los tests pasan: **252 pass, 0 fail, 0 hangs** (~1.2s).
 
-**Causa raíz:** El commit `3c36538` scopeó el indexer a solo `raw/` y `wiki/` (`INDEX_ROOTS`), pero los tests nunca se actualizaron. El fixture `createVault()` crea 4 archivos (incluyendo `reports/report.md`), pero el indexer ahora solo indexa 3.
+Los issues documentados el 2026-05-23 fueron resueltos:
 
-| Test | Espera | Recibe | Fix |
-|------|--------|--------|-----|
-| `buildIndex walks vault and computes backlinks` | `>= 4` notes | 3 | `>= 3` |
-| `query API - getBySection("reports")` | `length === 1` | 0 | Eliminar test (reports/ ya no se indexa) |
-| `query API - getOrphans` | `>= 1` | 0 | Agregar nota aislada en `raw/` o `wiki/` |
-| `query API - getGraphStats` | `total_nodes >= 4` | 3 | `>= 3` |
-| `query API - getStats` | `total_files >= 4` | 3 | `>= 3` |
-| `buildOrLoadIndex builds new index` | `notes.length >= 4` | 3 | `>= 3` |
+### Resueltos
 
-### 2. Wikilinks graph — 1 failure en `tests/wikilinks-graph.test.ts:38`
-
-`"wikilinks graph only includes wiki pages"` espera `total_nodes === 4` pero recibe 2. Los archivos en `daily/` y `templates/` no están en `INDEX_ROOTS`.
-
-**Fix:** Cambiar assertion a `total_nodes === 2` o mover fixtures a `wiki/`.
-
-### 3. Curation — 1 timeout en `tests/curation.test.ts`
-
-`"curation proposes a new wiki page from a raw note"` se cuelga porque `proposeWikiPage()` llama a `createLlmClient()` sin mock. Intenta conectar a Ollama real y excede el timeout del test.
-
-**Fix:** Mockear el LLM client o agregar skip condicional cuando Ollama no está disponible.
-
-### 4. LLM — 3 tests cuelgan en `tests/llm.test.ts`
-
-Los 3 tests se cuelgan indefinidamente a pesar de usar mock HTTP servers. Posible deadlock en module loading o issue con el test runner.
-
-**Fix:** Investigar deadlock. Los tests usan `createServer` de `node:http` y `createLlmClient` — verificar si el import de `createLlmClient` dispara side effects (DNS, env vars) que bloqueen.
+| Issue | Causa raíz | Fix | Commit |
+|-------|-----------|-----|--------|
+| Indexer — 6 assertion failures | `INDEX_ROOTS` scopeó a `raw/`+`wiki/` pero los tests esperaban `reports/` | Agregar nota aislada al fixture + eliminar assertion de `reports` | `d19ed98` |
+| Wikilinks graph — 1 failure | `daily/` y `templates/` fuera de `INDEX_ROOTS` | Assertion `total_nodes` 4→2 | `7639d48` |
+| Curation — 1 timeout | `proposeWikiPage` llamaba a Ollama real (sin mock) | Dependency injection: parámetro `llmClient` opcional + mock en test | `c67ac20` |
+| LLM — 3 hangs | `health.ok` no existe en la API (`{status,model}`) → assertion falla → server nunca cerrado → event loop vivo | Fix assertion a `health.status` + `t.after()` cleanup + mock `/v1/models` retorna el modelo | `51eae97` |
+| Config-loader — 1 env leak (no documentado) | `LIBRARIAN_VAULT_PATH` del entorno real pisaba el valor de test | Save/clear/restore en try/finally | `4bfcb8a` |
 
 ## Limitaciones Funcionales (del README)
 
@@ -48,4 +31,5 @@ Los 3 tests se cuelgan indefinidamente a pesar de usar mock HTTP servers. Posibl
 
 - `tsc --noEmit` (typecheck): pasa limpio
 - `tsc` (build): pasa limpio
+- `npm test`: 252 pass, 0 fail
 - No hay lint configurado en `package.json`
