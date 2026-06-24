@@ -7,6 +7,8 @@ import { createSemanticTool } from './tools/semantic.tool.js';
 import { inspectRawInbox } from './ingest.js';
 import type { ToolContext } from './index-context.js';
 
+type LlmClient = ReturnType<typeof createLlmClient>;
+
 // --- Helpers ---
 
 /** Normalize a filename for comparison: lowercase, no accents, no special chars */
@@ -77,6 +79,7 @@ const checkSemanticDuplicate = async (
   noteContent: string,
   fileName: string,
   queryApi?: ToolContext["queryApi"],
+  llmClient?: LlmClient,
 ): Promise<DuplicateCheck> => {
   const semantic = createSemanticTool({ vaultPath: basePath, queryApi: queryApi! });
 
@@ -96,7 +99,7 @@ const checkSemanticDuplicate = async (
     }
 
     // Medium score: ask GLM
-    const client = createLlmClient();
+    const client = llmClient ?? createLlmClient();
     const response = await client.chat([
       {
         role: 'system',
@@ -164,11 +167,12 @@ export const proposeWikiPage = async (
   skipDuplicates = true,
   queryApi?: ToolContext["queryApi"],
   signal?: AbortSignal,
+  llmClient?: LlmClient,
 ): Promise<CurationProposal> => {
   const sourceAbsolutePath = path.resolve(basePath, rawRelativePath);
   const sourceContent = await readFile(sourceAbsolutePath, 'utf8');
   const fileName = path.basename(rawRelativePath, '.md');
-  const client = createLlmClient();
+  const client = llmClient ?? createLlmClient();
 
   // 1. Classify with GLM
   const messages: LlmMessage[] = [
@@ -223,7 +227,7 @@ export const proposeWikiPage = async (
 
     // 2b. Semantic match (only if no filename match)
     if (duplicate === 'none') {
-      const semanticCheck = await checkSemanticDuplicate(basePath, sourceContent, fileName, queryApi);
+      const semanticCheck = await checkSemanticDuplicate(basePath, sourceContent, fileName, queryApi, llmClient);
       if (semanticCheck.reason !== 'none') {
         duplicate = semanticCheck.reason;
         duplicateOf = semanticCheck.existingPath;
@@ -265,7 +269,7 @@ export const proposeWikiPage = async (
   };
 };
 
-export const proposeWikiCurations = async (basePath: string, limit = 10, queryApi?: ToolContext["queryApi"], signal?: AbortSignal) => {
+export const proposeWikiCurations = async (basePath: string, limit = 10, queryApi?: ToolContext["queryApi"], signal?: AbortSignal, llmClient?: LlmClient) => {
   const inbox = await inspectRawInbox(basePath, queryApi);
   const toProcess = inbox.notes.filter(n => n.recommendation === 'curate').slice(0, limit);
 
@@ -284,7 +288,7 @@ export const proposeWikiCurations = async (basePath: string, limit = 10, queryAp
   for (let i = 0; i < toProcess.length; i++) {
     if (signal?.aborted) break;
     const note = toProcess[i];
-    proposals.push(await proposeWikiPage(basePath, note.file, existingPages, true, queryApi, signal));
+    proposals.push(await proposeWikiPage(basePath, note.file, existingPages, true, queryApi, signal, llmClient));
     process.stdout.write(`\r  Procesando ${i + 1}/${toProcess.length}: ${path.basename(note.file)}...`);
   }
   if (toProcess.length > 0) process.stdout.write('\n');
