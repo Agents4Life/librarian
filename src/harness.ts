@@ -182,7 +182,7 @@ export const runLibrarian = async (
         process.stdout.write(`\r  Procesando ${i + 1}/${total}: ${path.basename(note.file)}...           `);
 
         try {
-          const { proposals } = await proposeWikiCurations(vaultPath, 1, indexContext.query, signal);
+          const { proposals } = await proposeWikiCurations(vaultPath, 1, indexContext.query, signal, llmClient);
           if (proposals.length === 0 || signal?.aborted) { cancelled = true; break; }
 
           const p = proposals[0];
