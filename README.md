@@ -1,155 +1,114 @@
 # Librarian
 
-> Agente experimental local-first para mantener una LLM Wiki en un vault de Obsidian.
+> Experimental local-first agent for maintaining an LLM Wiki in an Obsidian vault.
 
-Librarian es un agente de IA que ayuda a mantener la capa de conocimiento de un vault de Obsidian. No es la wiki en sí: es el bibliotecario que lee fuentes inmutables, genera propuestas wiki revisables, encuentra huecos, detecta notas débiles y escribe reportes revisables.
+Librarian is an AI agent that helps maintain the knowledge layer of an Obsidian vault. It's not the wiki itself: it's the librarian that reads immutable sources, generates reviewable wiki proposals, finds gaps, detects weak notes, and writes reviewable reports.
 
-Implementa el [patrón LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f): en vez de buscar documentos crudos desde cero en cada pregunta, la IA construye y mantiene incrementalmente una wiki persistente, estructurada e interconectada en Markdown.
+It implements the [LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f): instead of searching raw documents from scratch on every question, the AI builds and maintains incrementally a persistent, structured, interconnected wiki in Markdown.
 
-## Estado
+## Status
 
-Librarian está en alpha experimental.
+Librarian is in experimental alpha.
 
-Hoy es útil para usuarios técnicos de Obsidian que se sienten cómodos con CLI, Markdown, configuración local y revisión de cambios generados. Todavía no es un plugin pulido de Obsidian ni un gestor de conocimiento completamente autónomo.
+Today it's useful for technical Obsidian users who are comfortable with CLI, Markdown, local configuration, and reviewing generated changes. It's not yet a polished Obsidian plugin or a fully autonomous knowledge manager.
 
-Primero corré Librarian sobre una copia de tu vault.
+First, run Librarian on a copy of your vault.
 
-## Por Qué Existe
+## Why It Exists
 
-Las herramientas RAG tradicionales te dejan chatear con documentos, pero cada pregunta empieza casi desde cero. Librarian usa otro enfoque: mantiene una capa durable `wiki/` dentro de tu vault.
+Traditional RAG tools let you chat with documents, but each question starts almost from scratch. Librarian takes a different approach: it maintains a durable `wiki/` layer inside your vault.
 
-El objetivo no es reemplazar tu pensamiento. El objetivo es sacar del medio el bookkeeping que hace que las wikis personales se degraden: links faltantes, conceptos duplicados, páginas obsoletas, resúmenes débiles, notas huérfanas y síntesis olvidadas.
+The goal isn't to replace your thinking. The goal is to remove the bookkeeping that makes personal wikis degrade: missing links, duplicated concepts, stale pages, weak summaries, orphan notes, and forgotten syntheses.
 
-## Modelo Del Vault
+## Vault Model
 
-Librarian espera un vault con estas capas:
+Librarian expects a vault with these layers:
 
 ```text
 vault/
-  1-proyectos/  # Carpetas PARA opcionales del Second Brain Ecosystem.
+  1-proyectos/  # Optional PARA folders from the Second Brain Ecosystem.
   2-areas/
   3-recursos/
   4-archivo/
   daily/
-  inbox/        # Inbox humano. No se procesa automáticamente.
+  inbox/        # Human inbox. Not processed automatically.
   templates/
   home.md
 
-  raw/          # Fuentes inmutables aprobadas explícitamente para IA.
-  wiki/         # Páginas mantenidas por IA.
+  raw/          # Immutable sources explicitly approved for AI.
+  wiki/         # AI-maintained pages.
     index.md
     log.md
     conceptos/
     entidades/
     sources/
     synthesis/
-  reports/      # Reportes, diagnósticos y artefactos de revisión.
-    chats/      # Sesiones de chat persistidas.
-    conflicts/  # Archivos de conflictos de merge.
-  reviews/      # Superficie humana de revisión/export.
-  memory/       # Memoria persistente del agente/sesiones.
-  configs/      # Configuración visible/editable de Librarian.
-  .librarian/   # Estado interno, índices, cache, locks, propuestas.
-    state/      # Índices y ledger de procesados.
-    proposals/  # Fuente de verdad de propuestas.
-    transactions/ # Registros transaccionales de apply.
+  reports/      # Reports, diagnostics, and review artifacts.
+    chats/      # Persisted chat sessions.
+    conflicts/  # Merge conflict files.
+  reviews/      # Human review/export surface.
+  memory/       # Persistent agent/session memory.
+  configs/      # Visible/editable Librarian configuration.
+  .librarian/   # Internal state, indexes, cache, locks, proposals.
+    state/      # Indexes and processed ledger.
+    proposals/  # Source of truth for proposals.
+    transactions/ # Transactional records of apply.
 ```
 
-Reglas base:
+Base rules:
 
-- `raw/` es la frontera explícita de consentimiento para procesamiento con IA. Librarian nunca modifica archivos aquí.
-- `wiki/` es conocimiento mantenido. Solo se modifica vía approve/apply.
-- `reports/` guarda diagnósticos y logs de chat.
-- `reviews/` es una superficie humana de revisión/export. No es la fuente de verdad de propuestas.
-- `.librarian/proposals/` es la fuente de verdad de propuestas.
-- `.librarian/transactions/` registra intentos de apply y metadata de recuperación.
-- `wiki/` solo se modifica vía approve/apply.
-- `inbox/`, `daily/` y PARA son la capa humana; mové o copiá a `raw/` solo las fuentes que querés que Librarian procese.
+- `raw/` is the explicit consent boundary for AI processing. Librarian never modifies files here.
+- `wiki/` is maintained knowledge. Only modified via approve/apply.
+- `reports/` holds diagnostics and chat logs.
+- `reviews/` is a human review/export surface. It's not the source of truth for proposals.
+- `.librarian/proposals/` is the source of truth for proposals.
+- `.librarian/transactions/` records apply attempts and recovery metadata.
+- `wiki/` is only modified via approve/apply.
+- `inbox/`, `daily/`, and PARA are the human layer; move or copy to `raw/` only the sources you want Librarian to process.
 
-## Qué Funciona Hoy
+## What Works Today
 
-- TUI interactiva y consultas CLI one-shot.
-- Indexado del vault, búsqueda en wiki, backlinks, stats de grafo, notas stale, notas incompletas y notas huérfanas.
-- Curaduría automática de notas raw: `/process` clasifica, aprueba y aplica directamente al wiki.
-- Flujo de revisión manual disponible con `preview`, `approve`, `reject`, `apply`, `retry` y `reset`.
-- Reportes de estado y logs de chat persistidos bajo `reports/`.
-- Configuración local-first compatible con OpenAI, apuntando a Ollama por defecto.
-- `librarian init` scaffolding idempotente con templates del Second Brain Ecosystem.
-- Post-apply hooks: `wiki/log.md` se actualiza durante apply; `wiki/index.md` todavía requiere mantenimiento/rebuild explícito según el flujo usado.
-- Exportación automática de propuestas a `reviews/` como Markdown legible en Obsidian.
-- Configuración vault-local desde `vault/configs/librarian.yaml`.
-- Propuestas multi-file (múltiples targets atómicos en una sola propuesta).
-- `save-chat` para convertir respuestas Q&A en propuestas wiki revisables.
-- Provider de embeddings con fallback a Jaccard heuristic.
-- `librarian lint` para health check integral del vault.
-- `librarian claims` para extracción de claims y detección de contradicciones.
+- Interactive TUI and one-shot CLI queries.
+- Vault indexing, wiki search, backlinks, graph stats, stale notes, incomplete notes, and orphan notes.
+- Automatic curation of raw notes: `/process` classifies, approves, and applies directly to the wiki.
+- Manual review flow available with `preview`, `approve`, `reject`, `apply`, `retry`, and `reset`.
+- Status reports and persisted chat logs under `reports/`.
+- Local-first configuration compatible with OpenAI, pointing to Ollama by default.
+- `librarian init` idempotent scaffolding with Second Brain Ecosystem templates.
+- Post-apply hooks: `wiki/log.md` updates during apply; `wiki/index.md` still requires explicit maintenance/rebuild depending on the flow used.
+- Automatic export of proposals to `reviews/` as Obsidian-readable Markdown.
+- Vault-local configuration from `vault/configs/librarian.yaml`.
+- Multi-file proposals (multiple atomic targets in a single proposal).
+- `save-chat` to convert Q&A responses into reviewable wiki proposals.
+- Embeddings provider with fallback to Jaccard heuristic.
+- `librarian lint` for comprehensive vault health check.
+- `librarian claims` for claim extraction and contradiction detection.
 
-## Límites Actuales
+## Current Limitations
 
-- Setup wizard interactivo (`librarian init` es scaffolding básico).
-- Plugin de Obsidian (deuda técnica — funcionalidad completa vía CLI/TUI).
-- Base vectorial real (ChromaDB, etc.) en la implementación actual; los embeddings usan un memory store en proceso.
-- Ingesta PDF/EPUB está implementada pero no cableada como comando CLI.
-- Algunas rutas de escritura siguen siendo experimentales.
-- El uso de modelos cloud es opt-in por variables de entorno, pero la privacidad depende del proveedor elegido.
+- Interactive setup wizard (`librarian init` is basic scaffolding).
+- Obsidian plugin (technical debt — full functionality via CLI/TUI).
+- Real vector database (ChromaDB, etc.) in the current implementation; embeddings use an in-process memory store.
+- PDF/EPUB ingestion is implemented but not wired as a CLI command.
+- Some write paths remain experimental.
+- Cloud model usage is opt-in via environment variables, but privacy depends on the chosen provider.
 
-## Seguridad
+## Safety
 
-Librarian trabaja con bases de conocimiento personales. Sé conservadora/o.
+Librarian works with personal knowledge bases. Be conservative.
 
-- Empezá con una copia de tu vault.
-- Usá `--dry-run` para procesamiento batch.
-- Mantené tu vault en Git u otro sistema de backup.
-- Revisá archivos generados antes de confiar en ellos.
-- No apuntes Librarian a notas sensibles si configurás un modelo cloud.
-- `raw/` está pensado como solo lectura, pero el proyecto está en alpha.
+- Start with a copy of your vault.
+- Use `--dry-run` for batch processing.
+- Keep your vault in Git or another backup system.
+- Review generated files before trusting them.
+- Don't point Librarian at sensitive notes if you configure a cloud model.
+- `raw/` is meant to be read-only, but the project is in alpha.
 
-Ver [SAFETY.md](SAFETY.md) para el modelo completo de seguridad.
-
-## Primer Uso — Paso a Paso
-
-1. **Instalá Librarian** (ver [Instalación](#instalación) abajo).
-
-2. **Apuntá al vault**:
-   ```bash
-   export LIBRARIAN_VAULT_PATH="/ruta/a/tu/vault/obsidian"
-   ```
-
-3. **Inicializá la capa Librarian en el vault**:
-   ```bash
-   librarian init
-   ```
-   Esto crea la capa humana (`inbox/`, `daily/`, PARA), `raw/`, `wiki/`, `reports/`, `reviews/`, `.librarian/`, `_assets/` y templates. Es idempotente — podés correrlo de nuevo sin problema.
-
-4. **Construí el índice**:
-   ```bash
-   librarian index rebuild
-   ```
-   Esto escanea el vault y genera `.librarian/state/index.json`. Sin índice, la mayoría de los comandos no funcionan.
-
-5. **Verificá el estado**:
-   ```bash
-   librarian index status
-   ```
-   Debería mostrar que el índice está fresco.
-
-6. **Arrancá la TUI**:
-   ```bash
-   librarian
-   ```
-
-7. **Leé la barra de estado**:
-   - `● indice listo` — todo OK.
-   - `⚠ actualizar indice` — el vault cambió desde el último indexado. Salí con `Ctrl+C`, corré `librarian index rebuild`, y volvé a abrir.
-   - `○ sin indice` — nunca se indexó. Corré `librarian index rebuild`.
-   - `◉ LLM: modelo` — el modelo de IA está conectado.
-   - `✗ LLM desconectado` — Ollama no está corriendo. Verificá que esté activo con `ollama serve`.
-
-8. **Empezá a usarlo**: escribí preguntas en el chat, o usá `/search`, `/status`, `/help`.
+See [SAFETY.md](SAFETY.md) for the complete security model.
 
 ## First Run — Step by Step
 
-1. **Install Librarian** (see [Instalación](#instalación) below).
+1. **Install Librarian** (see [Installation](#installation) below).
 
 2. **Point to your vault**:
    ```bash
@@ -188,7 +147,7 @@ Ver [SAFETY.md](SAFETY.md) para el modelo completo de seguridad.
 
 8. **Start using it**: type questions in the chat, or use `/search`, `/status`, `/help`.
 
-## Instalación
+## Installation
 
 ```bash
 git clone git@github.com:Agents4Life/librarian.git
@@ -198,172 +157,170 @@ npm run build
 npm link
 ```
 
-Después de `npm link`, el comando `librarian` queda disponible globalmente.
+After `npm link`, the `librarian` command becomes available globally.
 
-Se requiere Node.js 22+.
+Node.js 22+ is required.
 
-## Configuración
+## Configuration
 
-Definí la ruta de tu vault antes de correr comandos:
+Define your vault path before running commands:
 
 ```bash
-export LIBRARIAN_VAULT_PATH="/ruta/a/tu/vault/obsidian"
+export LIBRARIAN_VAULT_PATH="/path/to/your/obsidian/vault"
 ```
 
-También podés partir desde el template de entorno:
+You can also start from the environment template:
 
 ```bash
 cp .env.example .env
 ```
 
-Para scripts batch, `VAULT_PATH` también está soportado por compatibilidad:
+For batch scripts, `VAULT_PATH` is also supported for compatibility:
 
 ```bash
-export VAULT_PATH="/ruta/a/tu/vault/obsidian"
+export VAULT_PATH="/path/to/your/obsidian/vault"
 ```
 
-Copiá `config.example.yaml` si querés un archivo local documentado:
+Copy `config.example.yaml` if you want a documented local file:
 
 ```bash
 cp config.example.yaml config.yaml
 ```
 
-`config.yaml` está ignorado por Git porque puede contener rutas locales o configuración de proveedores.
+`config.yaml` is ignored by Git because it may contain local paths or provider configuration.
 
-`vault/configs/librarian.yaml` forma parte del modelo de vault previsto por Second Brain Ecosystem. Librarian soporta configuración vault-local con prioridad: variables de entorno → `vault/configs/librarian.yaml` → `config.yaml` en CWD → defaults.
+`vault/configs/librarian.yaml` is part of the vault model provided by the Second Brain Ecosystem. Librarian supports vault-local configuration with priority: environment variables → `vault/configs/librarian.yaml` → `config.yaml` in CWD → defaults.
 
-## Proveedores De Modelo
+## Model Providers
 
-Por defecto, Librarian apunta a un endpoint local de Ollama compatible con OpenAI:
+By default, Librarian points to a local Ollama endpoint compatible with OpenAI:
 
 ```bash
 export OLLAMA_BASE_URL="http://127.0.0.1:11434/v1"
 export OLLAMA_MODEL="qwen3.5:4b"
 ```
 
-Podés configurar otro endpoint compatible con OpenAI usando las mismas variables. Si configurás `ZAI_API_KEY`, Librarian envía un header `Authorization` cuando corresponde.
+You can configure another OpenAI-compatible endpoint using the same variables. If you set `ZAI_API_KEY`, Librarian sends an `Authorization` header when appropriate.
 
-Librarian usa `fetch()` nativo — no tiene SDK externo de LLM. Soporta endpoints primario y fallback con timeout configurable.
+Librarian uses native `fetch()` — no external LLM SDK. It supports primary and fallback endpoints with configurable timeout.
 
-La privacidad depende del proveedor:
+Privacy depends on the provider:
 
-- Ollama local: las notas se quedan en tu máquina o red local.
-- Proveedor cloud: fragmentos seleccionados de notas pueden enviarse a ese proveedor.
+- Local Ollama: notes stay on your machine or local network.
+- Cloud provider: selected fragments of notes may be sent to that provider.
 
-Local-first es la postura por defecto, no una garantía si configurás un proveedor cloud.
+Local-first is the default stance, not a guarantee if you configure a cloud provider.
 
-## Uso
+## Usage
 
-### TUI Interactiva
+### Interactive TUI
 
 ```bash
 librarian
 ```
 
-La TUI es **chat-first**: el chat es la vista principal y los resultados de la mayoría de los comandos aparecen ahí como mensajes legibles. Las vistas interactivas (salud del grafo, revisión de propuestas) se abren como overlays temporales con `Esc` para volver.
+The TUI is **chat-first**: chat is the main view, and most command results appear there as readable messages. Interactive views (graph health, proposal review) open as temporary overlays, dismissed with `Esc`.
 
-La barra de pestañas (1-4) da acceso directo a: **Chat**, **Revisar**, **Salud**, **Ayuda**.
+The tab bar (1-4) gives direct access to: **Chat**, **Review**, **Health**, **Help**.
 
-#### Comandos Slash
+#### Slash Commands
 
-Los comandos que producen texto van al chat. Los comandos interactivos abren overlays.
+Commands that produce text go to chat. Interactive commands open overlays.
 
-| Comando | Destino | Acción |
+| Command | Target | Action |
 |---------|---------|--------|
-| `/search <query>` | Chat | Buscar en la wiki |
-| `/status` | Chat | Vista general del estado |
-| `/process` | Chat | Procesar notas raw y escribir al wiki |
-| `/review` | Overlay | Revisar propuestas pendientes |
-| `/graph` | Chat | Grafo de conexiones |
-| `/orphans` | Overlay | Mostrar notas huérfanas |
-| `/stale` | Chat | Mostrar notas stale (90+ días) |
-| `/health` | Overlay | Dashboard de salud del grafo |
-| `/activity` | Overlay | Log de actividad de la sesión |
-| `/index` | Chat | Actualizar indice del vault |
-| `/help` | Overlay | Lista de comandos disponibles |
+| `/search <query>` | Chat | Search the wiki |
+| `/status` | Chat | Status overview |
+| `/process` | Chat | Process raw notes and write to the wiki |
+| `/review` | Overlay | Review pending proposals |
+| `/graph` | Chat | Connections graph |
+| `/orphans` | Overlay | Show orphan notes |
+| `/stale` | Chat | Show stale notes (90+ days) |
+| `/health` | Overlay | Graph health dashboard |
+| `/activity` | Overlay | Session activity log |
+| `/index` | Chat | Update vault index |
+| `/help` | Overlay | List available commands |
 
-#### Barra de Estado
+#### Status Bar
 
-La barra inferior muestra: estado del índice (`indice listo` / `⚠ actualizar indice`), modelo LLM activo (`LLM: qwen2.5:3b` / `✗ LLM desconectado`), y propuestas pendientes.
+The bottom bar shows: index status (`indice listo` / `⚠ actualizar indice`), active LLM model (`LLM: qwen2.5:3b` / `✗ LLM desconectado`), and pending proposals.
 
-### Consulta Única
-
-```bash
-librarian "buscar Clean Architecture"
-librarian "estado de la wiki"
-librarian "pregunta sobre Clean Architecture"
-```
-
-La CLI one-shot devuelve JSON. La TUI devuelve texto legible.
-
-### Inicialización Del Vault
+### One-shot Query
 
 ```bash
-librarian init                  # Scaffold Librarian layer en vault (idempotente, incluye templates)
+librarian "search Clean Architecture"
+librarian "wiki status"
+librarian "ask about Clean Architecture"
 ```
 
-### Health Check Y Claims
+The one-shot CLI returns JSON. The TUI returns readable text.
+
+### Vault Initialization
 
 ```bash
-librarian lint                  # Health check integral (incomplete, stale, orphans, wiki files, claims)
-librarian lint --skip-claims    # Health check rápido sin análisis de claims
-librarian claims                # Extraer claims y detectar contradicciones en el wiki
-librarian claims --section=conceptos  # Analizar solo una sección del wiki
-librarian claims --output=json  # Output en JSON en vez de markdown
+librarian init                  # Scaffold Librarian layer in vault (idempotent, includes templates)
 ```
 
-### Guardar Chat Como Propuesta
+### Health Check And Claims
 
 ```bash
-librarian save-chat --question="¿Qué es Clean Architecture?" --answer="Es un patrón..."
+librarian lint                  # Comprehensive health check (incomplete, stale, orphans, wiki files, claims)
+librarian lint --skip-claims    # Quick health check without claim analysis
+librarian claims                # Extract claims and detect contradictions in the wiki
+librarian claims --section=conceptos  # Analyze a single wiki section
+librarian claims --output=json  # JSON output instead of markdown
 ```
 
-Convierte un par Q&A en una propuesta wiki revisable usando el LLM para clasificarla.
-
-### Mantenimiento Del Índice
+### Save Chat As Proposal
 
 ```bash
-librarian index status    # Mostrar frescura del índice y metadata de caches
-librarian index rebuild   # Reconstruir el índice persistido del vault
+librarian save-chat --question="What is Clean Architecture?" --answer="It's a pattern..."
 ```
 
-Librarian usa un flujo de procesamiento automático para `/process` y un flujo proposal-first para operaciones manuales:
+Converts a Q&A pair into a reviewable wiki proposal using the LLM to classify it.
+
+### Index Maintenance
 
 ```bash
-librarian proposals                      # Listar todas las propuestas
-librarian proposals --status=pending     # Filtrar por estado
-librarian proposal <id>                  # Ver detalles de una propuesta
-librarian preview <id>                   # Previsualizar contenido
-librarian approve <id>                   # Aprobar una propuesta
-librarian reject <id> --reason="..."     # Rechazar con un motivo
-librarian apply <id>                     # Ejecutar una propuesta aprobada
-librarian retry <id>                     # Reintentar una propuesta fallida o rolled-back
-librarian reset <id>                     # Resetear una propuesta fallida o rolled-back a pending
+librarian index status    # Show index freshness and cache metadata
+librarian index rebuild   # Rebuild the persisted vault index
 ```
 
-Estados de propuesta: `pending → approved → applying → applied`, `pending → rejected`. En caso de error: `applying → failed` (recuperable vía `retry`) o `applying → rolled_back` (recuperable vía `reset`).
+Librarian uses an automatic processing flow for `/process` and a proposal-first flow for manual operations:
 
+```bash
+librarian proposals                      # List all proposals
+librarian proposals --status=pending     # Filter by status
+librarian proposal <id>                  # View proposal details
+librarian preview <id>                   # Preview content
+librarian approve <id>                   # Approve a proposal
+librarian reject <id> --reason="..."     # Reject with a reason
+librarian apply <id>                     # Execute an approved proposal
+librarian retry <id>                     # Retry a failed or rolled-back proposal
+librarian reset <id>                     # Reset a failed or rolled-back proposal to pending
 ```
 
-### Procesamiento Batch De Raw
+Proposal states: `pending → approved → applying → applied`, `pending → rejected`. On error: `applying → failed` (recoverable via `retry`) or `applying → rolled_back` (recoverable via `reset`).
 
-#### Desde la TUI
+### Batch Processing Of Raw
 
-Dentro de la TUI, `/process` inspecciona las fuentes aprobadas en `raw/`, las clasifica con IA, y las escribe directamente al wiki. Las notas duplicadas se omiten automáticamente. Las propuestas se guardan en `.librarian/proposals/` con fines de auditoría.
+#### From The TUI
+
+Inside the TUI, `/process` inspects the approved sources in `raw/`, classifies them with AI, and writes them directly to the wiki. Duplicate notes are skipped automatically. Proposals are saved in `.librarian/proposals/` for auditing purposes.
 
 ```
-/process    → procesa notas raw y las escribe al wiki
+/process    → process raw notes and write them to the wiki
 ```
 
-#### Desde la CLI
+#### From The CLI
 
-Previsualizar propuestas sin escribir:
+Preview proposals without writing:
 
 ```bash
 node scripts/process-raw.js --dry-run --limit 10
 ```
 
-El modo live genera propuestas en `.librarian/proposals/`. Revisalas y aplicalas con:
+Live mode generates proposals in `.librarian/proposals/`. Review and apply them with:
 
 ```bash
 node scripts/process-raw.js --limit 10
@@ -373,18 +330,18 @@ librarian approve <id>
 librarian apply <id>
 ```
 
-## Compatibilidad Con Second Brain Ecosystem
+## Second Brain Ecosystem Compatibility
 
-Librarian está diseñado para implementar la capa operativa opcional de IA descrita en las guías de Second Brain Ecosystem, especialmente la guía 04 y la guía 07. La configuración base del Segundo Cerebro funciona sin Librarian.
+Librarian is designed to implement the optional AI operational layer described in the Second Brain Ecosystem guides, especially guide 04 and guide 07. The base Second Brain setup works without Librarian.
 
-Reglas de compatibilidad:
+Compatibility rules:
 
-- Mantené intactas las carpetas PARA y el workflow humano.
-- Agregá la capa Librarian solo cuando quieras mantenimiento wiki asistido por IA.
-- Mové fuentes de `inbox/` a `raw/` solo cuando consentís que Librarian las procese.
-- Tratá `reviews/` como superficie humana legible y `.librarian/proposals/` como fuente de verdad.
-- Tratá la visión completa de la guía 07 como más amplia que el alpha actual. Librarian hoy implementa la base proposal-first, no toda la promesa autónoma de LLM Wiki.
+- Keep the PARA folders and the human workflow intact.
+- Add the Librarian layer only when you want AI-assisted wiki maintenance.
+- Move sources from `inbox/` to `raw/` only when you consent to Librarian processing them.
+- Treat `reviews/` as a human-readable surface and `.librarian/proposals/` as the source of truth.
+- Treat the full vision from guide 07 as broader than the current alpha. Librarian today implements the proposal-first foundation, not the entire autonomous promise of LLM Wiki.
 
-## Licencia
+## License
 
 MIT
