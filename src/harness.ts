@@ -188,7 +188,7 @@ export const runLibrarian = async (
           const p = proposals[0];
           if (p.type === 'skip') {
             skipped++;
-            try { await markProcessed(vaultPath, p.source, { proposalId: 'skip', targetPath: '', operationId: 'skip' }); } catch {}
+            try { await markProcessed(vaultPath, p.source, { proposalId: 'skip', targetPath: '', operationId: 'skip' }); } catch { process.stdout.write(`\n  ⚠ No se pudo marcar como procesada (skip): ${path.basename(p.source)}\n`); }
             continue;
           }
 
@@ -210,7 +210,7 @@ export const runLibrarian = async (
           process.stdout.write(`\n  ✗ Error en ${path.basename(note.file)}: ${errMsg}\n`);
           try {
             await markProcessed(vaultPath, note.file, { proposalId: 'error', targetPath: '', operationId: 'error' });
-          } catch {}
+          } catch { process.stdout.write(`\n  ⚠ No se pudo marcar como procesada (error): ${path.basename(note.file)}\n`); }
         }
       }
 
