@@ -110,20 +110,30 @@ describe('config-loader', () => {
 
   it('env vars override YAML values when used by config.ts', async () => {
     // This tests the integration pattern: env var takes precedence in config.ts
-    await writeFile(configPath, [
-      'vault:',
-      '  path: /yaml/vault',
-      'tracking:',
-      '  stale_threshold_days: 45',
-    ].join('\n'), 'utf8');
+    // Save and clear LIBRARIAN_VAULT_PATH so the test is environment-independent
+    const savedVaultPath = process.env.LIBRARIAN_VAULT_PATH;
+    delete process.env.LIBRARIAN_VAULT_PATH;
 
-    const yamlConfig = loadYamlConfig(configPath);
-    ok(yamlConfig);
-    strictEqual(yamlConfig.vault?.path, '/yaml/vault');
+    try {
+      await writeFile(configPath, [
+        'vault:',
+        '  path: /yaml/vault',
+        'tracking:',
+        '  stale_threshold_days: 45',
+      ].join('\n'), 'utf8');
 
-    // Simulate the config.ts pattern: env var overrides YAML
-    const vaultPath = process.env.LIBRARIAN_VAULT_PATH ?? yamlConfig?.vault?.path;
-    // Without env var set, YAML value wins
-    strictEqual(vaultPath, '/yaml/vault');
+      const yamlConfig = loadYamlConfig(configPath);
+      ok(yamlConfig);
+      strictEqual(yamlConfig.vault?.path, '/yaml/vault');
+
+      // Simulate the config.ts pattern: env var overrides YAML
+      const vaultPath = process.env.LIBRARIAN_VAULT_PATH ?? yamlConfig?.vault?.path;
+      // Without env var set, YAML value wins
+      strictEqual(vaultPath, '/yaml/vault');
+    } finally {
+      if (savedVaultPath !== undefined) {
+        process.env.LIBRARIAN_VAULT_PATH = savedVaultPath;
+      }
+    }
   });
 });
